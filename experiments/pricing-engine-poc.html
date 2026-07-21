@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>POC — Pricing Engine (تجريبي، غير مرجعي)</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Arial;background:#0f172a;color:#e2e8f0;margin:0;padding:24px}
+  .warn-banner{background:#7c2d12;border:2px solid #f97316;border-radius:10px;padding:14px 18px;margin-bottom:22px;font-size:14px;line-height:1.7}
+  .warn-banner b{color:#fdba74}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:#94a3b8;font-size:13px;margin-bottom:22px}
+  .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .tab{padding:9px 18px;border-radius:8px;border:1px solid #334155;background:#1e293b;cursor:pointer;font-size:14px;color:#cbd5e1}
+  .tab.active{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:16px}
+  .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #334155;font-size:14px}
+  .row:last-child{border:none}
+  .row b{color:#f1f5f9}
+  select,input{background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:14px}
+  label{font-size:12.5px;color:#94a3b8;display:block;margin-bottom:4px}
+  .field{margin-bottom:14px}
+  .big{font-size:30px;font-weight:800;color:#4ade80}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+  .badge.fresh{background:#166534;color:#bbf7d0}
+  .badge.stale{background:#7c2d12;color:#fed7aa}
+  .badge.none{background:#334155;color:#cbd5e1}
+  .hidden-note{color:#64748b;font-size:12.5px;margin-top:10px;font-style:italic}
+  .fix-note{background:#0c4a6e;border:1px solid #0ea5e9;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:16px;line-height:1.6}
+  code{background:#0f172a;padding:1px 6px;border-radius:4px;font-size:12.5px}
+</style>
+</head>
+<body>
+
+<div class="warn-banner">
+  ⚠️ <b>هذا ملف تجريبي (POC) لغرض العرض والتصور فقط — ليس جزءاً من <code>reference/prototype/prototype_v2.html</code> ولا يُعتمد كمرجع.</b><br>
+  الفصل بين "عرض CRM" و"عرض Finance" هنا <b>شكلي (UI) بس</b> — البيانات كلها في نفس ملف الـ JavaScript، فأي حد يفتح Developer Tools يشوف كل حاجة. <b>ده مش دليل على تحقق أي متطلب أمني حقيقي</b> — الإثبات الفعلي محتاج Backend يفصل البيانات فعلياً عن العميل (زي ما اتفقنا).
+</div>
+
+<h1>🏷️ محرك السعر المقترح — نموذج تجريبي</h1>
+<div class="sub">صيغة الحساب منقولة بالحرف من <code>pricingCalc()</code> الفعلية في الـ Prototype — مش مخترعة.</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="setView('crm')" id="tab-crm">👤 عرض CRM (مندوب مبيعات)</div>
+  <div class="tab" onclick="setView('finance')" id="tab-finance">🔐 عرض Finance/Manager (كامل)</div>
+</div>
+
+<div class="card">
+  <div class="field">
+    <label>المنتج</label>
+    <select id="prodSelect" onchange="render()"></select>
+  </div>
+  <div class="field">
+    <label>الكمية</label>
+    <input type="number" id="qtyInput" value="100" onchange="render()">
+  </div>
+  <div class="field" id="marginField">
+    <label>هامش الربح المستهدف (لعرض Finance بس)</label>
+    <select id="marginSelect" onchange="render()">
+      <option value="0.15">15%</option>
+      <option value="0.20">20%</option>
+      <option value="0.25" selected>25%</option>
+      <option value="0.30">30%</option>
+      <option value="0.90">90% ⚠️ (اختبار الحد الأقصى/القيمة الشاذة)</option>
+    </select>
+  </div>
+  <div class="field" id="overheadField">
+    <label>نسبة المصاريف العامة (Overhead Rate) — تقديرية للتجربة</label>
+    <select id="overheadSelect" onchange="render()">
+      <option value="0.05">5%</option>
+      <option value="0.08" selected>8%</option>
+      <option value="0.15">15%</option>
+    </select>
+  </div>
+  <div class="field" id="staleField">
+    <label>نافذة قِدَم التكلفة (يوم) — الافتراضي الفعلي في الكود = 90</label>
+    <select id="staleDaysSelect" onchange="render()">
+      <option value="30">30 يوم</option>
+      <option value="60">60 يوم</option>
+      <option value="90" selected>90 يوم (الافتراضي)</option>
+      <option value="180">180 يوم</option>
+    </select>
+  </div>
+</div>
+
+<div id="output"></div>
+<div id="scenarioNote"></div>
+
+<div class="fix-note">
+  💡 <b>تصحيح مهم عن المقترح الأصلي:</b> نافذة الـ 90 يوم هنا بتتحقق من <b>تاريخ آخر عملية شراء</b> (تحديث التكلفة) — مش "هل المنتج اتصدّر مؤخراً". دي القاعدة الفعلية الموجودة في الكود (<code>isCostStale</code>). منتج ممكن تكلفته حديثة لكن ما اتباعش من زمان، والعكس صحيح — الفرق ده كان غلط في المقترح الأصلي.
+</div>
+
+<script>
+// ═══ بيانات تجريبية بسيطة (مش من الـ DB الحقيقي) ═══
+const today = new Date('2026-07-18');
+const products = [
+  {code:'P-001', name:'زيت جوز الهند الخام', cur:'USD', supplierWaste:0.05, scenario:'الحالة الطبيعية: تكلفة حديثة + هدر معتدل',
+   purchases:[{date:'2026-06-10', unitCost:12.50}], lastSaleDate:'2026-07-01'},
+  {code:'P-002', name:'سمسم مقشور درجة أولى', cur:'USD', supplierWaste:0.08, scenario:'تكلفة قديمة (>90) رغم إن المنتج اتباع مؤخراً — بالظبط الفرق اللي صححناه عن المقترح الأصلي',
+   purchases:[{date:'2026-03-15', unitCost:9.20}], lastSaleDate:'2026-07-10'},
+  {code:'P-003', name:'كركديه مجفف', cur:'EGP', supplierWaste:0.03, scenario:'لا يوجد أي سجل شراء — لازم يظهر "لا يوجد سعر مرجعي" وليس صفر',
+   purchases:[], lastSaleDate:null},
+  {code:'P-004', name:'فول سوداني مقشور تصدير', cur:'USD', supplierWaste:0.25, scenario:'هدر مرتفع جداً (25%) من نفس المورّد — يفحص أثر الهدر على السعر النهائي',
+   purchases:[{date:'2026-06-25', unitCost:7.00}], lastSaleDate:'2026-06-28'},
+  {code:'P-005', name:'زيت زيتون معبأ (منتج نهائي)', cur:'USD', supplierWaste:0, scenario:'هدر صفر% — يفحص إن المعادلة تشتغل صح لما الهدر معدوم',
+   purchases:[{date:'2026-07-05', unitCost:22.00}], lastSaleDate:'2026-07-12'},
+  {code:'P-006', name:'قرفة عيدان درجة تصدير', cur:'EGP', supplierWaste:0.06, scenario:'⚠️ حافة الـ 90 يوم بالظبط — يفحص هل الحد شامل (≤90 = حديث) أو حصري (<90)',
+   purchases:[{date:computeDateNDaysAgo(90), unitCost:145.00}], lastSaleDate:'2026-07-01'},
+];
+let overheadRate = 0.08; // يتحدَّث من الاختيار في الواجهة
+let staleDaysThreshold = 90; // يتحدَّث من الاختيار في الواجهة
+
+function computeDateNDaysAgo(n){
+  const d = new Date(today);
+  d.setDate(d.getDate()-n);
+  return d.toISOString().slice(0,10);
+}
+
+function daysBetween(d1, d2){ return Math.round((d2-d1)/86400000); }
+
+// ═══ منقول بالحرف من منطق isCostStale الفعلي ═══
+function isCostStale(p, staleDays){
+  const days = staleDays || 90;
+  if(!p.purchases.length) return {stale:true, days:null, reason:'noPurchase'};
+  const lp = p.purchases[p.purchases.length-1];
+  const d = daysBetween(new Date(lp.date), today);
+  return {stale: d > days, days: d, reason:'age', threshold: days, unitCost: lp.unitCost, date: lp.date};
+}
+
+// ═══ منقول بالحرف من صيغة pricingCalc الفعلية ═══
+function pricingCalc(p, qty, marginPct){
+  const stale = isCostStale(p, staleDaysThreshold);
+  const unitCost = stale.unitCost || 0;
+  const cogs = unitCost * qty;
+  const waste = cogs * p.supplierWaste;
+  const direct = cogs + waste;
+  const m = Math.min(0.95, Math.max(0, marginPct));
+  const denom = 1 - m - overheadRate;
+  const revenue = denom > 0.02 ? (direct/denom) : direct*3;
+  const overhead = revenue * overheadRate;
+  const profit = revenue - direct - overhead;
+  const unitPrice = revenue/qty;
+  return {stale, unitCost, cogs, waste, direct, revenue, overhead, profit, unitPrice, marginPct:m, hitCap: denom<=0.02};
+}
+
+let currentView = 'crm';
+function setView(v){
+  currentView = v;
+  document.getElementById('tab-crm').className = 'tab'+(v==='crm'?' active':'');
+  document.getElementById('tab-finance').className = 'tab'+(v==='finance'?' active':'');
+  document.getElementById('marginField').style.display = v==='finance' ? 'block' : 'none';
+  render();
+}
+
+function render(){
+  const sel = document.getElementById('prodSelect');
+  if(!sel.options.length){
+    sel.innerHTML = products.map(p=>`<option value="${p.code}">${p.name} (${p.cur})</option>`).join('');
+  }
+  const code = sel.value || products[0].code;
+  const p = products.find(x=>x.code===code);
+  const qty = parseFloat(document.getElementById('qtyInput').value)||1;
+  const margin = parseFloat(document.getElementById('marginSelect').value)||0.25;
+  overheadRate = parseFloat(document.getElementById('overheadSelect').value)||0.08;
+  staleDaysThreshold = parseFloat(document.getElementById('staleDaysSelect').value)||90;
+  const r = pricingCalc(p, qty, margin);
+  const out = document.getElementById('output');
+
+  document.getElementById('scenarioNote').innerHTML =
+    `<div class="hidden-note" style="margin-bottom:12px">📌 سيناريو هذا المنتج: ${p.scenario}</div>`;
+
+  if(currentView === 'crm'){
+    // ═══ عرض CRM: السعر المقترح فقط، بلا أي تفاصيل تكلفة ═══
+    if(r.stale.reason === 'noPurchase' || r.stale.stale){
+      out.innerHTML = `
+        <div class="card">
+          <div class="row"><span>المنتج</span><b>${p.name}</b></div>
+          <div class="row"><span>الحالة</span><span class="badge none">لا يوجد سعر مرجعي حديث</span></div>
+          <div class="hidden-note">${r.stale.reason==='noPurchase'
+            ? 'لا يوجد سعر شراء مسجَّل لهذا المنتج إطلاقاً.'
+            : `آخر تحديث للتكلفة كان منذ ${r.stale.days} يوم (أكثر من حد ${staleDaysThreshold} يوم المسموح).`} برجاء طلب اعتماد تسعير من الإدارة.</div>
+        </div>`;
+    } else {
+      out.innerHTML = `
+        <div class="card">
+          <div class="row"><span>المنتج</span><b>${p.name}</b></div>
+          <div class="row"><span>الحالة</span><span class="badge fresh">سعر مرجعي حديث (${r.stale.days} يوم)</span></div>
+          <div class="row"><span>الكمية</span><b>${qty}</b></div>
+          <div style="margin-top:16px;text-align:center">
+            <div style="font-size:12.5px;color:#94a3b8">السعر المقترح للوحدة</div>
+            <div class="big">${r.unitPrice.toFixed(2)} ${p.cur}</div>
+          </div>
+          <div class="hidden-note">🔒 التكلفة، الهامش، ونسبة الهدر غير معروضة لهذا الدور — يظهر السعر النهائي فقط.</div>
+        </div>`;
+    }
+  } else {
+    // ═══ عرض Finance/Manager: التفصيل الكامل ═══
+    const staleBadge = r.stale.reason==='noPurchase'
+      ? '<span class="badge none">لا يوجد شراء مسجَّل</span>'
+      : (r.stale.stale ? `<span class="badge stale">قديمة (${r.stale.days} يوم، الحد ${staleDaysThreshold})</span>` : `<span class="badge fresh">حديثة (${r.stale.days} يوم، الحد ${staleDaysThreshold})</span>`);
+    out.innerHTML = `
+      <div class="card">
+        <div class="row"><span>المنتج</span><b>${p.name}</b></div>
+        <div class="row"><span>حالة التكلفة</span>${staleBadge}</div>
+        <div class="row"><span>تكلفة الوحدة (آخر شراء)</span><b>${r.unitCost.toFixed(2)} ${p.cur}</b></div>
+        <div class="row"><span>إجمالي COGS (${qty} وحدة)</span><b>${r.cogs.toFixed(2)}</b></div>
+        <div class="row"><span>الهدر (${(p.supplierWaste*100).toFixed(0)}%)</span><b>${r.waste.toFixed(2)}</b></div>
+        <div class="row"><span>التكلفة المباشرة الكلية</span><b>${r.direct.toFixed(2)}</b></div>
+        <div class="row"><span>نصيب المصاريف العامة (${(overheadRate*100).toFixed(0)}%)</span><b>${r.overhead.toFixed(2)}</b></div>
+        <div class="row"><span>هامش الربح المستهدف</span><b>${(r.marginPct*100).toFixed(0)}%${r.hitCap?' ⚠️ تجاوز الحد — استُخدم مضاعف احتياطي (×3)':''}</b></div>
+        <div class="row"><span>صافي الربح المتوقع</span><b style="color:#4ade80">${r.profit.toFixed(2)}</b></div>
+        <div style="margin-top:16px;text-align:center">
+          <div style="font-size:12.5px;color:#94a3b8">السعر النهائي للوحدة</div>
+          <div class="big">${r.unitPrice.toFixed(2)} ${p.cur}</div>
+        </div>
+        ${r.hitCap?'<div class="hidden-note">⚠️ الهامش + نسبة المصاريف العامة تجاوزا الحد الآمن (≥98%) — الصيغة الأصلية بترجع لمضاعف احتياطي (التكلفة المباشرة ×3) بدل ما تنهار. جرّب هامش 90% مع overhead 15% لرؤية هذا السلوك.</div>':''}
+      </div>`;
+  }
+}
+render();
+</script>
+</body>
+</html>
