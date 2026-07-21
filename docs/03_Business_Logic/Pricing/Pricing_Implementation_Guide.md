@@ -49,22 +49,14 @@ Last-Updated:   2026-07-21
 ## Approval Workflow
 
 ```
-حفظ فاتورة (أو تحديثها)
+حفظ فاتورة / بروفورما (أو تحديثها)
         │
         ▼
-هل يوجد Cost Override في جلسة التسعير هذه؟
-        │
-   نعم ──► يستوجب pricing.approvePriceException
-        │
-        ▼
-حساب الهامش الفعلي الناتج (بعد أي خصم)
+حساب الهامش الفعلي الناتج عن unitPrice (بعد أي خصم)
         │
         ▼
 belowMarginFloor(invoice)? ── لا ──► فحص exceedsLimit الحالي → حفظ عادي
-        │ نعم
-        ▼
-هل بيانات التكلفة متجاوِزة 90 يوماً؟ (أو سعر يدوي خارج السياسة؟)
-        │
+        │ نعم (أو: خصم خارج الحد / تكلفة قديمة تشترط السياسة اعتمادها / Override)
         ▼
 المستخدم يملك pricing.approvePriceException؟
         │
@@ -78,6 +70,8 @@ EXCEPTION_    ▼
 REQUIRED   حفظ + Audit: pricing.exception_approved
               + {exceptionType, reason, approvedBy, approvedAt}
 ```
+
+> **ملاحظة:** اختلاف `unitPrice` عن السعر الاسترشادي **لا يُشغِّل هذا المسار** — المشغِّل هو مخالفة السياسة (هامش، خصم، قِدَم تكلفة، Override). الانحراف عن المرجع الاسترشادي بحد ذاته مسموح بحرية كاملة.
 
 **الحد الأدنى للهامش:** إعداد عام `pricingSettings.minMarginFloor` — القيمة يحددها صاحب الصلاحية (انظر `Pricing_Policy.md §4`). القيمة الافتراضية المقترحة 10% تحتاج تأكيد Product Owner.
 
@@ -134,23 +128,27 @@ type CostComponent =
 
 ---
 
-## Suggested Price Snapshot — Schema
+## Price Guidance Record — Schema (Audit Metadata)
 
-يُحفَظ عند اختيار المستخدم السعر قبل تحويل الفرصة لبروفورما:
+> يُحفَظ كـ metadata على البروفورما لأغراض التدقيق والمقارنة التحليلية. **ليس** سعر المستند — `unitPrice` الفعلي على البروفورما هو السعر الحقيقي.
 
 ```typescript
-interface PriceSnapshot {
-  suggestedPrice:      number;
-  priceConfidenceState: 'fresh' | 'stale' | 'no_purchase';
-  costOverridePresent:  boolean;
-  selectedPrice:        number;           // ما اختاره المستخدم (قد يختلف عن Suggested)
-  selectedBy:           string;           // userId
-  selectedAt:           DateTime;
-  exceptionApproved:    boolean;          // true إذا استوجبت الحالة approvePriceException
-  exceptionReason?:     string;
-  pricingEngineVersion: string;           // للمستقبل — إصدار محرك التسعير وقت الحساب
+interface PriceGuidanceRecord {
+  suggestedPriceAtDecision: number;      // السعر الاسترشادي وقت إنشاء البروفورما
+  priceConfidenceState:     'fresh' | 'stale' | 'no_purchase';
+  costOverridePresent:      boolean;
+  // unitPrice (الفعلي) محفوظ على البروفورما نفسها — لا يُكرَّر هنا
+  recordedBy:               string;      // userId
+  recordedAt:               DateTime;
+  exceptionApproved?:       boolean;     // إذا خالف unitPrice الفعلي سياسةً
+  exceptionReason?:         string;
+  pricingEngineVersion?:    string;
 }
 ```
+
+**قاعدة العزل:**
+- `suggestedPriceAtDecision` لأغراض التدقيق فقط — لا يُعرَض للعميل ولا يُطبَع على المستند.
+- `unitPrice` على البروفورما هو القيمة التجارية الحقيقية التي تدخل كل الحسابات اللاحقة.
 
 ---
 
@@ -169,7 +167,7 @@ interface PriceSnapshot {
 | `pricing.margin_changed` | تغيير الهامش بصلاحية `editMargin` | userId, oldMargin, newMargin, productCode |
 | `pricing.cost_override_created` | إنشاء Cost Override | userId, costComponent, originalValue, overrideValue, reason |
 | `pricing.exception_approved` | اعتماد استثناء | userId, exceptionType, reason, invoiceId/sessionId |
-| `pricing.price_snapshot_saved` | حفظ Snapshot عند تحويل فرصة | userId, selectedPrice, confidenceState, opportunityId |
+| `pricing.price_guidance_recorded` | تسجيل Price Guidance Record عند إنشاء البروفورما | userId, suggestedPriceAtDecision, confidenceState, opportunityId |
 
 ---
 

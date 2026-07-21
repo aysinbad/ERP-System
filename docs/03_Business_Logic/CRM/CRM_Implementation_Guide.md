@@ -93,43 +93,48 @@ interface SuggestedPriceDisplay {
 ### Price Selector قبل تحويل الفرصة لبروفورما
 
 ```
-المستخدم يضغط "تحويل لبروفورما" على فرصة ناجحة
+المستخدم يفتح شاشة إنشاء البروفورما
         │
         ▼
 هل المستخدم يملك pricing.viewSuggestedPrice؟
         │
-   لا ──► تحويل مباشر (Prototype behavior — fallback)
+   لا ──► إنشاء بروفورما عادي (بدون Price Guidance Panel)
         │
    نعم  ▼
 جلب SuggestedPrice + PriceConfidenceState لكل منتج في الفرصة
+→ عرض في Price Guidance Panel (لوحة معلومات مصاحبة — لا تمنع الإنشاء)
         │
         ▼
-عرض Price Selector: السعر الاسترشادي (مع badge) + حقل سعر يدوي
+المستخدم يُدخَل unitPrice الفعلي لكل بند (مستقل عن السعر الاسترشادي)
         │
         ▼
-هل البيانات قديمة (stale) أو Override أو سعر يدوي خارج السياسة؟
+عند الحفظ: هل unitPrice يُخالف سياسةً؟
+(هامش أقل من الحد / خصم خارج الحد / تكلفة قديمة تشترط الاعتماد / Override)
+        │
+   لا ──► حفظ عادي (الاختلاف عن السعر الاسترشادي بحد ذاته ليس مشكلة)
         │
    نعم ──► فحص pricing.approvePriceException
            └─ لا صلاحية → رفض + PRC_PRICE_EXCEPTION_REQUIRED
-           └─ يملك → سبب إجباري → متابعة
+           └─ يملك → سبب إجباري → حفظ + Audit
         │
-   لا   ▼
-حفظ PriceSnapshot على البروفورما → تنفيذ التحويل
+        ▼
+تسجيل suggestedPriceAtDecision كـ metadata (Audit فقط) → تنفيذ التحويل
 ```
 
-### PriceSnapshot Schema (يُحفَظ على البروفورما)
+### Price Guidance Record (metadata للتدقيق — يُحفَظ على البروفورما)
 
 ```typescript
-proforma.priceSnapshot = {
-  suggestedPrice:       number,
-  confidenceState:      'fresh' | 'stale' | 'no_purchase',
-  costOverridePresent:  boolean,
-  selectedPrice:        number,      // ما اختاره المستخدم
-  selectedBy:           string,      // userId
-  selectedAt:           DateTime,
-  exceptionApproved:    boolean,
-  exceptionReason?:     string,
+proforma.priceGuidanceRecord = {
+  suggestedPriceAtDecision: number,   // السعر الاسترشادي وقت إنشاء البروفورما
+  confidenceState:           'fresh' | 'stale' | 'no_purchase',
+  costOverridePresent:       boolean,
+  // unitPrice الفعلي محفوظ على proforma.items[].unitPrice — لا يُكرَّر هنا
+  recordedAt:                DateTime,
+  exceptionApproved?:        boolean, // إذا خالف unitPrice الفعلي سياسةً
+  exceptionReason?:          string,
 }
+// ملاحظة: suggestedPriceAtDecision لأغراض التدقيق فقط
+// لا يُعرَض للعميل ولا يؤثر على أي حساب لاحق
 ```
 
 ### Error Codes الخاصة بـ Pricing Integration في CRM
@@ -138,7 +143,7 @@ proforma.priceSnapshot = {
 |---|---|---|
 | `PRC_PRICE_EXCEPTION_REQUIRED` | تحويل فرصة بسعر يستوجب اعتماد استثناء | 403 |
 | `PRC_NO_COST_DATA` | لا يوجد سعر استرشادي للمنتج | 422 |
-| `CRM_PROFORMA_PRICE_REQUIRED` | المستخدم لم يختر سعراً قبل التحويل | 422 |
+| `CRM_PROFORMA_GUIDANCE_UNAVAILABLE` | لا يوجد سعر استرشادي للمنتج (اختياري — لا يمنع الإنشاء) | 200 + warning |
 
 ---
 
@@ -179,7 +184,7 @@ proforma.priceSnapshot = {
 | `crm.opportunity.stage_changed` | أي تغيّر مرحلة | `oppId, fromStage, toStage, owner` |
 | `crm.opportunity.won` | الوصول لـ `won` | `oppId, custCode, value, cur, owner` |
 | `crm.opportunity.lost` | الوصول لـ `lost` | `oppId, custCode, value, cur, lostReason, owner` |
-| `crm.opportunity.converted_to_proforma` | نجاح التحويل لبروفورما مع PriceSnapshot | `oppId, proformaId, custCode, selectedPrice, confidenceState` |
+| `crm.opportunity.converted_to_proforma` | نجاح التحويل لبروفورما | `oppId, proformaId, custCode, suggestedPriceAtDecision?, confidenceState?` |
 | `crm.customer.duplicate_blocked` | رفض حفظ بسبب INV-01 | `attemptedName, country, existingCode, existingOwner, blockedBy` |
 | `crm.customer.ownership_reassigned` | نجاح `crmReassign` | `customerCode, fromOwner, toOwner, reassignedBy` |
 | `crm.activity.logged` | أي `crmLog()` ناجح | `activityId, refType, refId, type, by` |
@@ -206,7 +211,7 @@ proforma.priceSnapshot = {
 | `CRM_CUSTOMER_NAME_REQUIRED` | حفظ عميل بدون اسم | `editCustomer` → "أدخل اسم العميل" | 422 |
 | `CRM_ENTITY_NOT_FOUND` | Lead/Opportunity غير موجود | فحوصات `if(!o)return` المتكررة | 404 |
 | `CRM_PROFORMA_PRODUCT_UNMATCHED` | تحويل فرصة بدون تطابق كود منتج | `crmOppToProforma` → تنبيه | 200 + warning |
-| `CRM_PROFORMA_PRICE_REQUIRED` | لم يختر المستخدم سعراً قبل التحويل | (Production-only) | 422 |
+| `CRM_PROFORMA_GUIDANCE_UNAVAILABLE` | لا يوجد سعر استرشادي للمنتج — إنشاء البروفورما مسموح بسعر يدوي | (Production-only) | 200 + warning |
 | `PRC_PRICE_EXCEPTION_REQUIRED` | سعر يستوجب `approvePriceException` | (Production-only — Pricing Integration) | 403 |
 | `CRM_LEAD_DELETE_CONVERTED_BLOCKED` *(مقترح — OQ-5)* | حذف Lead بحالة `converted` | لا يوجد مكافئ حالياً | 409 |
 | `CRM_OPPORTUNITY_STAGE_TRANSITION_BLOCKED` *(مقترح — ADR-015)* | انتقال مرحلة غير مسموح | لا يوجد مكافئ حالياً | 409 |
