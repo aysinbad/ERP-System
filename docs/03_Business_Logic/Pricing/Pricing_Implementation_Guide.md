@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Pricing Implementation Guide
-Version:        1.1.0 (5 صلاحيات + Cost Override Audit + Staleness Logic + Migration Note)
+Version:        1.2.0 (توحيد PriceGuidanceRecord: line-level + حداثة 90 يوم مكتمل + إعادة تسمية الحدث)
 Status:         Approved
 Classification: Source of Truth
 Owner:          Solution Architecture Team
@@ -117,8 +117,8 @@ type CostComponent =
 
 | الحالة | الشرط (Prototype: `isCostStale`) | عرض المستخدم |
 |---|---|---|
-| `fresh` | كل بنود التكلفة < 90 يوماً | Badge "محدَّث ✓" |
-| `stale` | أي بند ≥ 90 يوماً | تنبيه: **"السعر الاسترشادي مبني جزئياً على بيانات تجاوزت 3 أشهر تقريباً ويحتاج مراجعة الإدارة."** |
+| `fresh` | كل بنود التكلفة ≤ 90 يوماً مكتملاً (اليوم 90 = محدَّث) | Badge "محدَّث ✓" |
+| `stale` | أي بند > 90 يوماً مكتملاً (اليوم 91 فأكثر = قديم) | تنبيه: **"السعر الاسترشادي مبني جزئياً على بيانات تجاوزت 3 أشهر تقريباً ويحتاج مراجعة الإدارة."** |
 | `no_purchase` | لا يوجد سجل شراء | "لا يوجد سعر مرجعي حديث — برجاء طلب اعتماد تسعير من الإدارة." |
 
 **للإدارة (`viewCost`):** تفصيل كل بند قديم — اسم البند، تاريخ آخر تحديث، المصدر، القيمة.
@@ -128,27 +128,33 @@ type CostComponent =
 
 ---
 
-## Price Guidance Record — Schema (Audit Metadata)
+## Price Guidance Record — Schema (Audit Metadata، على مستوى كل بند)
 
-> يُحفَظ كـ metadata على البروفورما لأغراض التدقيق والمقارنة التحليلية. **ليس** سعر المستند — `unitPrice` الفعلي على البروفورما هو السعر الحقيقي.
+> يُحفَظ كـ metadata **لكل بند على حدة** على البروفورما لأغراض التدقيق والمقارنة التحليلية. **ليس** سعر البند — `unitPrice` الفعلي على `proforma.items[]` هو السعر الحقيقي.
 
 ```typescript
 interface PriceGuidanceRecord {
-  suggestedPriceAtDecision: number;      // السعر الاسترشادي وقت إنشاء البروفورما
-  priceConfidenceState:     'fresh' | 'stale' | 'no_purchase';
-  costOverridePresent:      boolean;
-  // unitPrice (الفعلي) محفوظ على البروفورما نفسها — لا يُكرَّر هنا
-  recordedBy:               string;      // userId
-  recordedAt:               DateTime;
-  exceptionApproved?:       boolean;     // إذا خالف unitPrice الفعلي سياسةً
-  exceptionReason?:         string;
-  pricingEngineVersion?:    string;
+  lineId:                   string;   // مرجع لبند البروفورما
+  productCode:               string;
+  quantity:                  number;
+  currency:                  string;
+  suggestedPriceAtDecision:  number;  // السعر الاسترشادي وقت إنشاء البروفورما
+  priceConfidenceState:      'fresh' | 'stale' | 'no_purchase';
+  costOverridePresent:       boolean;
+  recordedBy:                string;  // userId
+  recordedAt:                DateTime;
 }
 ```
 
+**التخزين:**
+```typescript
+proforma.priceGuidanceRecords: PriceGuidanceRecord[]   // مصفوفة — سجل واحد لكل بند
+```
+
 **قاعدة العزل:**
-- `suggestedPriceAtDecision` لأغراض التدقيق فقط — لا يُعرَض للعميل ولا يُطبَع على المستند.
-- `unitPrice` على البروفورما هو القيمة التجارية الحقيقية التي تدخل كل الحسابات اللاحقة.
+- `priceGuidanceRecords` لأغراض التدقيق فقط — لا يُعرَض للعميل ولا يُطبَع على المستند.
+- `proforma.items[].unitPrice` هو القيمة التجارية الحقيقية التي تدخل كل الحسابات اللاحقة (ضريبة، COGS، عمولة).
+- `exceptionApproved`/`exceptionReason` (إذا خالف `unitPrice` سياسةً) تُسجَّل في Audit Log العام (`pricing.exception_approved`) — لا داخل `PriceGuidanceRecord` نفسه، لتفادي ازدواج مصدر الحقيقة.
 
 ---
 
@@ -176,7 +182,7 @@ interface PriceGuidanceRecord {
 | الكود | الحالة | HTTP |
 |---|---|---|
 | `PRC_NO_COST_DATA` | لا يوجد سجل شراء لحساب التكلفة | 422 |
-| `PRC_COST_STALE` | بيانات التكلفة قديمة (>90 يوم) | 200 + warning |
+| `PRC_COST_STALE` | بيانات التكلفة قديمة (>90 يوماً مكتملاً) | 200 + warning |
 | `PRC_MARGIN_BELOW_FLOOR` | الهامش أقل من الحد الأدنى | 409 |
 | `PRC_PRICE_EXCEPTION_REQUIRED` | الحالة تستوجب `approvePriceException` | 403 |
 | `PRC_OVERRIDE_SCOPE_VIOLATION` | محاولة تطبيق Override خارج الجلسة | 422 |
@@ -191,7 +197,7 @@ interface PriceGuidanceRecord {
 | `pricing.suggested_price_viewed` | مستخدم CRM يفتح السعر الاسترشادي | Audit |
 | `pricing.cost_override_created` | إنشاء Override | Audit + Notification للمدير |
 | `pricing.exception_approved` | اعتماد استثناء | Audit + Notification للمدير |
-| `pricing.price_snapshot_saved` | تحويل فرصة لبروفورما بسعر مختار | CRM (تحديث الفرصة) + Audit |
+| `pricing.price_guidance_recorded` | حفظ `PriceGuidanceRecord` لبند عند إنشاء البروفورما | CRM (تحديث الفرصة) + Audit |
 
 ---
 

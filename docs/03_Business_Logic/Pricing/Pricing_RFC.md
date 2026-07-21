@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Pricing RFCs
-Version:        1.1.0 (إضافة RFC-PRC-004 + ملاحظة RFC-ACC-001)
+Version:        1.2.0 (توحيد مصطلحات PriceGuidanceRecord + RFC-PRC-004 Cross-Module)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -28,7 +28,7 @@ Last-Updated:   2026-07-21
 **الحالة:** 🟡 رُقِّي إلى RFC-ACC-001 (Cross-Module, Canonical) في `Accounting_RFC.md`.
 
 **ملاحظة (2026-07-21):** بُعد واحد من هذا RFC تم حسمه ضمن ميزة السعر الاسترشادي السري:
-- **محسوم:** السعر الاسترشادي المختار قبل تحويل الفرصة لبروفورما يُحفَظ كـ Snapshot وقت التحويل — البروفورما لا تُعيد حسابه من محرك التسعير لاحقاً.
+- **محسوم:** `unitPrice` الفعلي على كل بند في البروفورما يُدخَل مستقلاً — لا يعتمد على السعر الاسترشادي ولا يُنسَخ منه تلقائياً. السعر الاسترشادي يُخزَّن اختيارياً كـ `PriceGuidanceRecord` (metadata للتدقيق فقط، على مستوى كل بند).
 - **لا يزال مفتوحاً في RFC-ACC-001:** نمط Recalculation في حساب العمولة (`commissionRows`) وتكلفة الوحدة في Inventory.
 
 ---
@@ -38,7 +38,8 @@ Last-Updated:   2026-07-21
 ```
 RFC:          RFC-PRC-004
 Title:        Cost Override → Official Product Cost
-Type:         Single-Module (Pricing + Inventory cross-concern)
+Type:         Cross-Module
+Scope:        Pricing · Inventory
 Status:       Future Enhancement — لم يُفتَح للنقاش بعد
 Opened:       2026-07-21
 ```

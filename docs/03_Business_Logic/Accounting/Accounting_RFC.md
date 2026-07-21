@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Accounting Engine RFCs
-Version:        0.2.0 (ملاحظة: بُعد Pricing→Proforma Snapshot من RFC-ACC-001 محسوم)
+Version:        0.3.0 (توحيد مصطلحات: Pricing Guidance بدل Snapshot)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -37,7 +37,7 @@ Expected-outcome: Cross-Module ADR
 
 | البُعد | الموديول | الحالة | القرار |
 |---|---|---|---|
-| **Pricing → Proforma Snapshot** | Pricing → CRM | ✅ **محسوم (2026-07-21)** | السعر المختار قبل تحويل الفرصة يُحفَظ Snapshot — البروفورما لا تُعيد الحساب. موثَّق في `Pricing.md` Business Rules §Suggested Price & CRM Integration |
+| **Pricing Guidance at Proforma Decision** | Pricing → CRM | ✅ **محسوم (2026-07-21)** | `proforma.items[].unitPrice` هو السعر التجاري الفعلي — يُدخَل مستقلاً بلا اعتماد على السعر الاسترشادي. السعر الاسترشادي **metadata اختيارية للتدقيق فقط** (`PriceGuidanceRecord`). البروفورما لا تعتمد على السعر الاسترشادي ولا تُعيد حسابه. موثَّق في `Pricing.md` Business Rules §Suggested Price & CRM Integration |
 | **Commission Recalculation** | Pricing (PINV-12) | 🟡 مفتوح | العمولة تُعاد حسابها من حالة النظام الحالية — Snapshot لم يُقرَّر |
 | **Inventory Unit Cost** | Inventory | 🟡 مفتوح | التكلفة ديناميكية وقت الطلب — يُحسَم عند توثيق Inventory |
 | **Accounting Derived Values** | Accounting | 🟡 مفتوح | نصيب المصروف العام والمخصصات — يُحسَم في جلسة 5 من Accounting |

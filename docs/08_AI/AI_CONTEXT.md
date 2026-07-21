@@ -2,7 +2,7 @@
 
 ## Document Information
 ```
-Version:        2.0.0 (Refactored — lightweight + ToC)
+Version:        2.1.0 (ميزة السعر الاسترشادي + ADR-018 موسَّع + OQ-1 مغلق + docs/04_Policies)
 Last-Updated:   2026-07-21
 ```
 
@@ -61,13 +61,13 @@ Latest Accepted:  ADR-014 — AI Development Strategy (2026-07-17)
 
 **Proposed (بانتظار اعتماد Product Owner):**
 
-| ADR | الموضوع |
-|---|---|
-| ADR-015 | تقييد Won/Lost مع تجاوز مبرَّر |
-| ADR-016 | CRM Enterprise Enhancements |
-| ADR-017 | مصادر مكوّنات التكلفة (يحسم RFC-PRC-001) |
-| ADR-018 | صلاحية التكلفة + حد الهامش (يحسم RFC-PRC-002) |
-| ADR-019 | استبدال استدعاء CRM→Sales بـ Domain Event (يحسم RFC-SLE-001) |
+| ADR | الموضوع | ملاحظة |
+|---|---|---|
+| ADR-015 | تقييد Won/Lost مع تجاوز مبرَّر | — |
+| ADR-016 | CRM Enterprise Enhancements | — |
+| ADR-017 | مصادر مكوّنات التكلفة | يحسم RFC-PRC-001 |
+| **ADR-018** | **نموذج صلاحيات التسعير الكامل (5 صلاحيات)** | موسَّع 2026-07-21: `approvePriceException` بدل `approveLowMargin` · `viewSuggestedPrice` · `editCostOverride` · `editMargin` · Migration Note |
+| ADR-019 | استبدال استدعاء CRM→Sales بـ Domain Event | يحسم RFC-SLE-001 |
 
 ---
 
@@ -75,9 +75,10 @@ Latest Accepted:  ADR-014 — AI Development Strategy (2026-07-17)
 
 | RFC | النطاق | الحالة | الملف القانوني |
 |---|---|---|---|
-| **RFC-ACC-001** | Snapshot vs Recalculation (Cross-Module) | 🟡 Open — جلسة 5 | `Accounting/Accounting_RFC.md` |
+| **RFC-ACC-001** | Snapshot vs Recalculation (Cross-Module) | 🟡 **Partially Resolved** — بُعد Pricing→Proforma محسوم ✅ · Inventory وAccounting مفتوحان · جلسة 5 | `Accounting/Accounting_RFC.md` |
 | RFC-SLE-002 | الشحن الجزئي | 🟢 تحقيق مكتمل، قرار معلَّق | `Sales_Export_RFC.md` |
 | RFC-PRC-003 | تجميد القيم المُشتقّة | 🟡 رُقِّي إلى RFC-ACC-001 | `Pricing_RFC.md` (cross-ref) |
+| RFC-PRC-004 | Cost Override → تكلفة رسمية معتمدة | ⬜ Future Enhancement — لم يُفتَح | `Pricing_RFC.md` |
 
 ---
 
@@ -85,8 +86,8 @@ Latest Accepted:  ADR-014 — AI Development Strategy (2026-07-17)
 
 | الموديول | الحالة | تفاصيل |
 |---|---|---|
-| CRM | 🟡 In Review | يحتاج ADR-015 |
-| Pricing | ✅ Approved | 6/6 جلسات · ADR-017/018 Proposed |
+| CRM | 🟡 In Review | ADR-015 · **Pricing Integration مضاف (#12, #13)** |
+| Pricing | ✅ Approved | OQ-1 مغلق · ميزة السعر الاسترشادي موثَّقة · `docs/04_Policies/Pricing_Policy.md` |
 | Sales / Export | 🟢 Complete — Pending Approval | 56 TC · Implementation Guide مكتمل |
 | Inventory & Production | 🟢 Complete — Pending Approval | IINV-01 مؤكَّد · RFC-SLE-002 جاهز |
 | **Accounting** | 🔵 **In Progress 2/6** | جلسة 3 التالية |
@@ -101,7 +102,7 @@ Latest Accepted:  ADR-014 — AI Development Strategy (2026-07-17)
 
 1. **Accounting جلسة 3** — Sales & Receivables Rules
 2. **Accounting جلسة 4** — Procurement, Inventory & Production Rules
-3. **Accounting جلسة 5** — AINV + RFCs (نقطة التبلور)
+3. **Accounting جلسة 5** — AINV + RFCs (نقطة التبلور) + RFC-ACC-001 الأبعاد المفتوحة
 4. **Accounting جلسة 6** — Implementation Guide + Test Cases
 5. **HR** — الموديول الأخير
 
@@ -113,3 +114,6 @@ Latest Accepted:  ADR-014 — AI Development Strategy (2026-07-17)
 - القالب المرجعي للموديولات: `docs/03_Business_Logic/CRM/`.
 - `AINV-XX` لا تُرقَّم قبل جلسة 5 من Accounting.
 - `Accounting.md` يجيب على "ماذا يضمن النظام؟" فقط — أسماء الدوال في `Accounting_Implementation_Guide.md`.
+- **`docs/04_Policies/`** مجلد جديد (2026-07-21) — وثائق سياسات إدارية بلا أسماء برمجية. أول ملف: `Pricing_Policy.md`.
+- **Migration Note — `approveLowMargin`:** أي تحقق قديم من `can('pricing','approveLowMargin')` يُهاجَر لـ `can('pricing','approvePriceException')` — انظر `ADR-018.md`.
+- **السعر الاسترشادي** هو مرجع داخلي غير ملزم (`Price Guidance Panel`) — لا يُنسَخ تلقائياً لسعر البروفورما. `unitPrice` الفعلي مستقل.

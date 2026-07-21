@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  CRM Implementation Guide
-Version:        1.2.0 (إضافة قسم Pricing Integration)
+Version:        1.3.0 (توحيد PriceGuidanceRecord line-level + إعادة تسمية الحدث)
 Status:         In Review
 Classification: Source of Truth
 Owner:          Solution Architecture Team
@@ -121,20 +121,14 @@ interface SuggestedPriceDisplay {
 تسجيل suggestedPriceAtDecision كـ metadata (Audit فقط) → تنفيذ التحويل
 ```
 
-### Price Guidance Record (metadata للتدقيق — يُحفَظ على البروفورما)
+### Price Guidance Record (metadata للتدقيق — على مستوى كل بند)
+
+> Schema الكامل والقانوني في `Pricing_Implementation_Guide.md`. هنا فقط كيفية التخزين على البروفورما.
 
 ```typescript
-proforma.priceGuidanceRecord = {
-  suggestedPriceAtDecision: number,   // السعر الاسترشادي وقت إنشاء البروفورما
-  confidenceState:           'fresh' | 'stale' | 'no_purchase',
-  costOverridePresent:       boolean,
-  // unitPrice الفعلي محفوظ على proforma.items[].unitPrice — لا يُكرَّر هنا
-  recordedAt:                DateTime,
-  exceptionApproved?:        boolean, // إذا خالف unitPrice الفعلي سياسةً
-  exceptionReason?:          string,
-}
-// ملاحظة: suggestedPriceAtDecision لأغراض التدقيق فقط
-// لا يُعرَض للعميل ولا يؤثر على أي حساب لاحق
+proforma.priceGuidanceRecords: PriceGuidanceRecord[]   // مصفوفة — سجل واحد لكل بند
+// unitPrice الفعلي محفوظ على proforma.items[].unitPrice — لا يُكرَّر هنا
+// exceptionApproved/exceptionReason (إن وُجدا) تُسجَّل في Audit Log العام (pricing.exception_approved)
 ```
 
 ### Error Codes الخاصة بـ Pricing Integration في CRM
@@ -167,7 +161,7 @@ proforma.priceGuidanceRecord = {
 **⚠️ لا يُسجَّل حالياً:**
 - حذف Lead (`delLead`) — KI-007.
 - تغييرات مراحل الفرصة.
-- اختيار السعر الاسترشادي وحفظ PriceSnapshot *(يُسجَّل عبر `pricing.price_snapshot_saved` في Pricing Audit — انظر `Pricing_Implementation_Guide.md`)*.
+- اختيار السعر الاسترشادي وحفظ `PriceGuidanceRecord` *(يُسجَّل عبر `pricing.price_guidance_recorded` في Pricing Audit — انظر `Pricing_Implementation_Guide.md`)*.
 
 سجل التدقيق قابل للتلاعب في Prototype (KI-004) — لا يُعتمَد عليه قبل بناء Backend غير قابل للتعديل.
 
@@ -234,6 +228,6 @@ proforma.priceGuidanceRecord = {
 
 ### Depends On
 - `docs/03_Business_Logic/CRM/CRM.md` — منطق الأعمال (المرجع الأعلى)
-- `docs/03_Business_Logic/Pricing/Pricing_Implementation_Guide.md` — PriceSnapshot Schema، Staleness Logic
+- `docs/03_Business_Logic/Pricing/Pricing_Implementation_Guide.md` — PriceGuidanceRecord Schema، Staleness Logic
 - `docs/01_Standards/API_Standards.md` — اصطلاح أكواد الخطأ
 - `docs/02_Governance/Known_Issues.md` — KI-002, KI-004, KI-007

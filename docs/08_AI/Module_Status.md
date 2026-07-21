@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Module Status (Detailed)
-Version:        1.0.0
+Version:        1.1.0 (تحديث Pricing + CRM — ميزة السعر الاسترشادي)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -19,8 +19,8 @@ Last-Updated:   2026-07-21
 
 | الموديول | حالة التوثيق | ملاحظة |
 |---|---|---|
-| **CRM** | 🟡 In Review | لا يُعتمد قبل حسم ADR-015 (وADR-016 اختيارياً) |
-| **Pricing** | ✅ Approved | RFC-PRC-003 رُقِّي إلى RFC-ACC-001 (Cross-Module) |
+| **CRM** | 🟡 In Review | لا يُعتمد قبل حسم ADR-015 · **Pricing Integration مضاف (#12, #13)** |
+| **Pricing** | ✅ Approved | OQ-1 مغلق · ميزة السعر الاسترشادي · `docs/04_Policies/Pricing_Policy.md` |
 | **Sales / Export** | 🟢 Complete — Pending Approval | المحتوى كامل، لم يُعتمد رسمياً بعد |
 | **Inventory & Production** | 🟢 Complete — Pending Approval | المرحلتان مكتملتان، لم يُعتمد رسمياً بعد |
 | **Accounting** | 🔵 In Progress — Session 2/6 | جلستان مكتملتان (2026-07-21) |
@@ -28,15 +28,27 @@ Last-Updated:   2026-07-21
 
 ---
 
-## Pricing (Approved — 2026-07-18)
+## Pricing (Approved)
 
 **الجلسات:** 6/6 مكتملة. الحالة: `Approved`.
 
-**اكتشافات جوهرية:**
-- محرك التسعير (`pricingCalc`) منفصل تماماً عن مسار CRM→بروفورما — `crmOppToProforma` يستخدم `Product.price` الثابت.
-- باگ مؤكَّد في حساب تكلفة BOM متداخل (PINV-07) — كامن في الكود، غير مُفعَّل بالبيانات الحالية.
-- ADR-017/018: `Proposed` — لم يُعتمدا رسمياً (انظر قاعدة مستويات الاعتماد في `AI_CONTEXT.md`).
-- RFC-PRC-003 رُقِّي إلى RFC-ACC-001 (Cross-Module, Canonical).
+**تحديث 2026-07-21 — ميزة السعر الاسترشادي السري:**
+- `Pricing.md` v1.3.0: Entities #8 (SuggestedPrice) · #9 (PriceConfidenceState) · #10 (CostOverride) · Business Rules §Suggested Price & CRM Integration (6 قواعد).
+- **OQ-1 مغلق** — بالصياغة الصحيحة: CRM يعرض السعر الاسترشادي كمرجع اختياري مستقل في **Price Guidance Panel**، البروفورما حرة في استخدام `unitPrice` مختلف.
+- `Pricing_Implementation_Guide.md` v1.1.0: Permissions Matrix (5 صلاحيات) · Cost Override Audit Entity · Staleness Display Logic · Price Guidance Record Schema.
+- `Pricing_RFC.md` v1.1.0: RFC-PRC-004 (Future Enhancement) · RFC-ACC-001 بُعد Pricing→Proforma محسوم.
+- `docs/04_Policies/Pricing_Policy.md`: جديد — سياسة إدارية بلا أرقام ثابتة ولا أسماء برمجية.
+- **ADR-018 موسَّع:** 5 صلاحيات · `approvePriceException` بدل `approveLowMargin` · Migration Note.
+
+**اكتشافات جوهرية سابقة (لا تزال صالحة):**
+- باگ مؤكَّد في BOM متداخل (PINV-07) — غير مُفعَّل بالبيانات الحالية.
+- ADR-017/018: `Proposed` — لم يُعتمدا رسمياً (قاعدة مستويات الاعتماد).
+- RFC-PRC-003 رُقِّي إلى RFC-ACC-001.
+
+**مفاهيم جوهرية للحفظ:**
+- السعر الاسترشادي = مرجع غير ملزم (`Price Guidance Panel`) — لا يُنسَخ لسعر البروفورما.
+- `approvePriceException` تُطبَّق على مخالفة السياسة (هامش، خصم، قِدَم، Override) — لا على الانحراف عن السعر الاسترشادي.
+- `suggestedPriceAtDecision` = metadata للتدقيق فقط — لا يُعرَض للعميل ولا يؤثر على حسابات.
 
 ---
 
@@ -44,18 +56,23 @@ Last-Updated:   2026-07-21
 
 الحالة: `In Review`. لا يُعتمد قبل حسم ADR-015 (وADR-016 اختيارياً).
 
+**تحديث 2026-07-21:**
+- `CRM.md` v2.2.0: Business Rule #3 محدَّثة · **Business Rules #12 و#13 مضافتان** (Pricing Visibility · Price Guidance Panel).
+- `CRM_Implementation_Guide.md` v1.2.0: **قسم Pricing Integration كامل** (Price Guidance Panel flow · PriceGuidanceRecord Schema · Error Codes · Domain Events).
+- الربط مع ADR-018 (`viewSuggestedPrice` · `approvePriceException`) موثَّق.
+
 ---
 
 ## Sales / Export (Complete — Pending Approval)
 
 **الأقسام:** 10/10 مكتملة. `Sales_Export_Test_Cases.md`: 56 حالة اختبار. `Sales_Export_Implementation_Guide.md`: مكتمل.
 
-**🔴 أخطر اكتشاف — KI-009:** أمر التصدير (`order → invoice`) لا يُمنع من التكرار — لا في الكود ولا في الواجهة. مستخدم عادي يقدر ينشئ **فاتورة تجارية مكرّرة فعلية**.
+**🔴 أخطر اكتشاف — KI-009:** أمر التصدير (`order → invoice`) لا يُمنع من التكرار — مستخدم عادي يقدر ينشئ **فاتورة تجارية مكرّرة فعلية**.
 
 **اكتشافات أخرى:**
 - `delSalesDoc` بلا صلاحية أو فحص حالة (KI-008).
 - تأجيل الإيراد EAS 48 مرصود في الكود صراحةً.
-- `DAT` غير متاح للاختيار في أي شاشة رغم وجوده في قاعدة التأجيل (SINV-07).
+- `DAT` غير متاح للاختيار رغم وجوده في قاعدة التأجيل (SINV-07).
 
 **RFC-SLE-001:** موثَّق في ADR-019 (Proposed). **RFC-SLE-002:** تحقيق تقني مكتمل — قرار تجاري معلَّق.
 
@@ -77,10 +94,10 @@ Last-Updated:   2026-07-21
 ## Accounting (In Progress — Session 2/6)
 
 **جلسة 1 (2026-07-21):** Framework + Catalog (27 مصدر، 11 section) + Dependencies.
-**جلسة 2 (2026-07-21):** Accounting Principles & Timing — 7 محاور (Recognition · Historical FX · Opening · Period · Manual vs Auto · General Principles · Source of Truth).
+**جلسة 2 (2026-07-21):** Accounting Principles & Timing — 7 محاور.
 
+**RFC-ACC-001:** Partially Resolved — بُعد Pricing→Proforma محسوم ✅ · Inventory وAccounting مفتوحان.
 **مرشّح للتحقق (جلسة 5):** مخصص مكافأة نهاية الخدمة (5430/2160).
-**RFC-ACC-001:** Canonical Cross-Module RFC — Snapshot vs Recalculation.
 
 ---
 
