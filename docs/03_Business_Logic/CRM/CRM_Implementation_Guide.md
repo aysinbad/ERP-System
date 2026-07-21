@@ -3,19 +3,18 @@
 ## Document Information
 ```
 Document Name:  CRM Implementation Guide
-Version:        1.1.0
+Version:        1.2.0 (إضافة قسم Pricing Integration)
 Status:         In Review
 Classification: Source of Truth
 Owner:          Solution Architecture Team
 Approved-by:    —
 Approved-date:  —
-Last-Updated:   2026-07-18
-Supersedes:     أقسام من CRM.md v1.2.0 (State Matrix, Permissions, Notifications, Audit,
-                Domain Events, Error Codes) — نُقلت هنا بلا تغيير في المحتوى.
+Last-Updated:   2026-07-21
+Supersedes:     CRM_Implementation_Guide.md v1.1.0
 ```
 
-> **العلاقة بـ `CRM.md`:** `CRM.md` يحدد "ماذا يجب أن يحدث" (منطق الأعمال). هذا الملف يحدد "إزاي يتربط بالنظام تقنياً" — حالات الانتقال، الصلاحيات التنفيذية، الإشعارات، التدقيق، الأحداث، وأكواد الخطأ. **لا تعديل مستقل في أحدهما بمعزل عن الآخر** — أي تغيير في Business Rules هنا يجب أن ينعكس في `CRM.md` والعكس.
-> **لا يُعتمَد (`Approved`) قبل حسم INV-09** (State Transition Matrix أدناه) — بانتظار اعتماد ADR-015.
+> **العلاقة بـ `CRM.md`:** `CRM.md` يحدد "ماذا يجب أن يحدث". هذا الملف يحدد "إزاي يتربط بالنظام تقنياً". **لا تعديل مستقل في أحدهما بمعزل عن الآخر.**
+> **لا يُعتمَد (`Approved`) قبل حسم INV-09** — بانتظار اعتماد ADR-015.
 
 ---
 
@@ -28,10 +27,10 @@ Supersedes:     أقسام من CRM.md v1.2.0 (State Matrix, Permissions, Notifi
 | **new** | — | ✅ | ✅ | ✅ | ✅ (عبر تحويل منفصل) |
 | **contacted** | ✅ | — | ✅ | ✅ | ✅ |
 | **qualified** | ✅ | ✅ | — | ✅ | ✅ |
-| **unqualified** | ✅ | ✅ | ✅ | — | ❌ (لا مسار تحويل من هنا في الكود) |
+| **unqualified** | ✅ | ✅ | ✅ | — | ❌ |
 | **converted** | ❌ | ❌ | ❌ | ❌ | — |
 
-> القيد الوحيد الفعلي: `converted` نهائية تماماً. باقي الانتقالات حرة عبر قائمة منسدلة بلا أي تحقق من التسلسل المنطقي (مثال: يمكن الرجوع من `qualified` إلى `new`).
+> القيد الوحيد الفعلي: `converted` نهائية تماماً.
 
 ### Opportunity — الحالة الفعلية في الكود (غير مقيَّدة)
 
@@ -43,99 +42,193 @@ Supersedes:     أقسام من CRM.md v1.2.0 (State Matrix, Permissions, Notifi
 | **won** | ✅ | ✅ | ✅ | — | ✅ |
 | **lost** | ✅ | ✅ | ✅ | ✅ | — |
 
-> عبر السحب والإفلات (Kanban)، أي عمود قابل للإفلات من أي عمود آخر بلا استثناء — **بما في ذلك الرجوع من `won` أو `lost`**. لا يوجد أي تنبيه أو تأكيد إضافي عند هذه الانتقالات الحساسة حالياً.
-
-**🔴 قرار مطلوب من الفريق قبل الاعتماد:** هل هذا السلوك (حرية كاملة في الانتقال) مقصود فعلاً (مرونة تشغيلية)، أم يجب تقييده في الإصدار القادم؟ **موثَّق كقرار مقترح في `docs/02_Governance/ADR/ADR-015.md` (حالته `Proposed`)** — يقيّد فقط الخروج من `won`/`lost` مع صلاحية تجاوز مبرَّرة للمدير، ويبقي التقدّم بين المراحل المفتوحة حراً.
+**🔴 قرار مطلوب:** هل يُقيَّد الخروج من `won`/`lost`؟ — موثَّق في ADR-015 (Proposed).
 
 ---
 
 ## Permissions
 
-- **تعريف "المدير":** `role==='owner'` أو أي دور له `all:true` في مصفوفة الأدوار — تعريف ديناميكي وليس اسم دور ثابت.
-- **فلترة كاملة** (Leads, Pipeline, Tasks, Activities, لوحة CRM) للمندوب غير المدير: يرى فقط `owner===نفسه` (أو `by===نفسه` للأنشطة).
-- **استثناء شاشة العملاء:** المندوب يرى كل الأسماء (لمنع التكرار)، لكن التفاصيل مقفلة لغير المملوك له.
-- **إعادة التوزيع:** حصرية للمدير، وتُحدِّث `owner` على العميل مباشرة (مصدر الحقيقة الأساسي بعد أي إسناد يدوي).
-- ⚠️ **حذف Lead (`delLead`): بلا أي تحقق صلاحية في الكود حالياً** — أي مستخدم شايف الـ Lead (حسب فلترة الملكية) يقدر يحذفه نهائياً، بما في ذلك Lead بحالة `converted`. لا يوجد تمييز "المدير فقط" هنا كما هو الحال في `crmReassign`. **فجوة موثَّقة — انظر `Known_Issues.md` KI-007.**
-- ⚠️ **كل ما سبق تحقق على الواجهة (Client-side) فقط حالياً** — انظر `docs/02_Governance/Known_Issues.md` KI-002. لازم يُفرض على مستوى الـ API عند البناء، لا يُعتمد على إخفاء العناصر كحماية فعلية.
+- **تعريف "المدير":** `role==='owner'` أو دور له `all:true` — ديناميكي وليس اسم دور ثابت.
+- **فلترة كاملة** للمندوب غير المدير: يرى فقط `owner===نفسه`.
+- **استثناء شاشة العملاء:** المندوب يرى كل الأسماء (لمنع التكرار)، لكن التفاصيل مقفلة.
+- **إعادة التوزيع:** حصرية للمدير.
+- ⚠️ **حذف Lead (`delLead`): بلا أي تحقق صلاحية حالياً** — KI-007.
+- ⚠️ **كل ما سبق تحقق على الواجهة فقط** — KI-002. يُفرَض على مستوى الـ API عند البناء.
+
+---
+
+## Pricing Integration
+
+> هذا القسم يصف التفاصيل التقنية لعرض السعر الاسترشادي في CRM واختياره قبل تحويل الفرصة لبروفورما. المرجع الكامل لما يرى / ما لا يرى: `CRM.md` Business Rules #12 و#13.
+
+### فحص الصلاحية
+
+```
+can('pricing','viewSuggestedPrice') → عرض السعر + PriceConfidenceState
+can('pricing','viewCost') → يتضمن viewSuggestedPrice ضمنياً
+لا صلاحية → لا عرض لأي معلومات تسعير
+```
+
+### حقول العرض (للمستخدم بصلاحية viewSuggestedPrice)
+
+```typescript
+interface SuggestedPriceDisplay {
+  suggestedPrice:      number;
+  currency:            string;
+  confidenceState:     'fresh' | 'stale' | 'no_purchase';
+  badgeText:           string;    // نص للمستخدم
+  // تفاصيل التكلفة: HIDDEN — للإدارة (viewCost) فقط
+}
+```
+
+**نصوص الـ Badge:**
+- `fresh` → "سعر مرجعي محدَّث ✓"
+- `stale` → "يحتاج مراجعة الإدارة ⚠️" + tooltip: *"بيانات تجاوزت 3 أشهر تقريباً."*
+- `no_purchase` → "لا يوجد سعر مرجعي حديث — برجاء طلب اعتماد تسعير."
+
+**للإدارة (`viewCost`) إضافياً:**
+- قائمة البنود القديمة: اسم البند، تاريخ آخر تحديث، المصدر، القيمة.
+- إشارة إذا كان السعر يعكس Cost Override.
+
+### Price Selector قبل تحويل الفرصة لبروفورما
+
+```
+المستخدم يضغط "تحويل لبروفورما" على فرصة ناجحة
+        │
+        ▼
+هل المستخدم يملك pricing.viewSuggestedPrice؟
+        │
+   لا ──► تحويل مباشر (Prototype behavior — fallback)
+        │
+   نعم  ▼
+جلب SuggestedPrice + PriceConfidenceState لكل منتج في الفرصة
+        │
+        ▼
+عرض Price Selector: السعر الاسترشادي (مع badge) + حقل سعر يدوي
+        │
+        ▼
+هل البيانات قديمة (stale) أو Override أو سعر يدوي خارج السياسة؟
+        │
+   نعم ──► فحص pricing.approvePriceException
+           └─ لا صلاحية → رفض + PRC_PRICE_EXCEPTION_REQUIRED
+           └─ يملك → سبب إجباري → متابعة
+        │
+   لا   ▼
+حفظ PriceSnapshot على البروفورما → تنفيذ التحويل
+```
+
+### PriceSnapshot Schema (يُحفَظ على البروفورما)
+
+```typescript
+proforma.priceSnapshot = {
+  suggestedPrice:       number,
+  confidenceState:      'fresh' | 'stale' | 'no_purchase',
+  costOverridePresent:  boolean,
+  selectedPrice:        number,      // ما اختاره المستخدم
+  selectedBy:           string,      // userId
+  selectedAt:           DateTime,
+  exceptionApproved:    boolean,
+  exceptionReason?:     string,
+}
+```
+
+### Error Codes الخاصة بـ Pricing Integration في CRM
+
+| الكود | السياق | HTTP |
+|---|---|---|
+| `PRC_PRICE_EXCEPTION_REQUIRED` | تحويل فرصة بسعر يستوجب اعتماد استثناء | 403 |
+| `PRC_NO_COST_DATA` | لا يوجد سعر استرشادي للمنتج | 422 |
+| `CRM_PROFORMA_PRICE_REQUIRED` | المستخدم لم يختر سعراً قبل التحويل | 422 |
+
+---
 
 ## Notifications
 
-- **الحالة الحالية:** تنبيهات داخل التطبيق فقط (In-app) — لا بريد إلكتروني ولا واتساب.
-- الأمثلة الموجودة: مهمة متأخرة/قريبة الاستحقاق، عميل محتمل "واعد" بدأ يبرد (>14 يوم بلا نشاط)، فرصة تجاوزت موعد الإغلاق المتوقع، عميل بمخاطر فقد مرتفعة.
-- **فجوة موثّقة مسبقاً:** "Notification Center (Email/WhatsApp)" مذكورة كأولوية "مهمة" في `docs/00_Project/Current_State.md` — تحتاج قرار تصميم منفصل، خارج نطاق هذا الملف.
-- ربط عملي بقسم **Domain Events** أدناه: أي قناة إشعار جديدة (بريد/واتساب/n8n) تُبنى فوق نفس الأحداث الموثّقة هناك، لا منطق منفصل.
+- **الحالة الحالية:** تنبيهات داخل التطبيق فقط — لا بريد إلكتروني ولا واتساب.
+- أمثلة موجودة: مهمة متأخرة، عميل محتمل يبرد (>14 يوم)، فرصة تجاوزت موعد الإغلاق، عميل بمخاطر فقد مرتفعة.
+- **فجوة موثَّقة:** "Notification Center (Email/WhatsApp)" — تحتاج قرار تصميم منفصل.
+- أي قناة إشعار جديدة تُبنى فوق Domain Events أدناه، لا منطق منفصل.
+
+---
 
 ## Audit Rules
 
-يُسجَّل حالياً (عبر `audit()`):
-- إنشاء/تعديل عميل (قبل/بعد التعديل كاملاً)
-- تحويل Lead إلى عميل (مع اسم الـ Lead الأصلي)
-- إعادة توزيع ملكية عميل (المالك القديم/الجديد)
-- كل نشاط CRM مسجَّل (`crmLog`) يُدرَج في سجل التدقيق العام
+**يُسجَّل حالياً (عبر `audit()`):**
+- إنشاء/تعديل عميل (قبل/بعد التعديل).
+- تحويل Lead إلى عميل.
+- إعادة توزيع ملكية عميل.
+- كل نشاط CRM مسجَّل.
 
-⚠️ **لا يُسجَّل حالياً:** عمليات حذف الـ Lead (`delLead`) — لا يوجد أي أثر تدقيق لمن حذف، متى، أو هل كان الـ Lead محوَّلاً. هذا يفاقم خطر KI-007 (لا صلاحية) وخطر التكامل الموثَّق في `CRM.md` Business Rules #11 — لو الحذف حصل، مفيش حتى دليل لاحق يوضّح إيه اللي حصل.
+**⚠️ لا يُسجَّل حالياً:**
+- حذف Lead (`delLead`) — KI-007.
+- تغييرات مراحل الفرصة.
+- اختيار السعر الاسترشادي وحفظ PriceSnapshot *(يُسجَّل عبر `pricing.price_snapshot_saved` في Pricing Audit — انظر `Pricing_Implementation_Guide.md`)*.
 
-⚠️ **لا يُسجَّل حالياً:** تغييرات مراحل الفرصة (`moveOppStage`)، ولا حذف الأنشطة/المهام بتفاصيل كافية للمراجعة. **مرتبط مباشرة بـ ADR-015** — لو اعتُمد تقييد الخروج من `won`/`lost`، تسجيل التجاوز في الـ Audit يصبح إلزامياً كجزء من نفس القرار، لا اختيارياً.
-سجل التدقيق نفسه قابل للتلاعب حالياً كملف Prototype (`docs/02_Governance/Known_Issues.md` KI-004) — لا يُعتمَد عليه كدليل رقابي قبل بناء نسخة الـ Backend غير القابلة للتعديل.
-
----
-
-## Domain Events (لاستخدام الـ API وn8n والإشعارات)
-
-> كل حدث هنا هو **حقيقة تجارية وقعت فعلاً**، لا مجرد استدعاء دالة. الـ Backend الجديد، وأي أتمتة عبر n8n، وأي قناة إشعار مستقبلية، تُبنى فوق هذه الأحداث — لا تُعاد استنتاجها من تغييرات الحقول مباشرة.
-
-| الحدث (Event) | يُطلَق عند | الحمولة الأساسية (Payload) | المستهلكون المحتملون |
-|---|---|---|---|
-| `crm.lead.created` | إنشاء Lead جديد | `leadId, owner, source, estValue, cur` | تقارير، لوحة التحكم |
-| `crm.lead.stage_changed` | تغيّر `stage` لأي Lead | `leadId, fromStage, toStage, owner` | تقارير، (لاحقاً) تنبيه عند دخول `unqualified` |
-| `crm.lead.converted` | نجاح `convertLeadToCustomer` | `leadId, customerCode, owner` | إشعار المدير، مزامنة CRM↔Customers |
-| `crm.opportunity.created` | إنشاء فرصة (مباشرة أو من Lead) | `oppId, custCode, owner, value, cur, stage` | تقارير المسار |
-| `crm.opportunity.stage_changed` | أي تغيّر مرحلة (بما فيها عبر Kanban) | `oppId, fromStage, toStage, owner` | Audit (إلزامي عند اعتماد ADR-015)، n8n لأتمتة تنبيهات |
-| `crm.opportunity.won` | الوصول لمرحلة `won` تحديداً | `oppId, custCode, value, cur, owner` | إنشاء المهمة التلقائية، إشعار الإدارة، محرك التوقّع |
-| `crm.opportunity.lost` | الوصول لمرحلة `lost` | `oppId, custCode, value, cur, lostReason, owner` | تقارير معدّل الفوز |
-| `crm.opportunity.converted_to_proforma` | نجاح `crmOppToProforma` وربط `proformaId` | `oppId, proformaId, custCode` | وحدة المبيعات (تفعيل السلسلة التالية) |
-| `crm.customer.duplicate_blocked` | رفض حفظ بسبب INV-01 | `attemptedName, country, existingCode, existingOwner, blockedBy` | مراقبة (KPI: محاولات تضارب)، لا يُخزَّن كعميل |
-| `crm.customer.ownership_reassigned` | نجاح `crmReassign` | `customerCode, fromOwner, toOwner, reassignedBy` | Audit، إشعار المندوب الجديد/القديم |
-| `crm.activity.logged` | أي `crmLog()` ناجح | `activityId, refType, refId, type, by` | تحديث `lastActivity`، تقارير النشاط |
-| `crm.task.created` | إنشاء مهمة (يدوي أو تلقائي عند `won`) | `taskId, refType, refId, due, priority, owner` | إشعارات المواعيد |
-| `crm.task.completed` | إتمام مهمة | `taskId, owner` | تقارير الإنتاجية |
-| `crm.lead.deleted` | نجاح `delLead` | `leadId, deletedBy, wasConverted` | Audit (إلزامي — انظر KI-007)، تنبيه لو `wasConverted=true` (خطر تكامل) |
-| `crm.customer.health_band_changed` *(مقترح — غير موجود كحدث فعلي في الكود حالياً، محسوب فقط عند الطلب)* | عبور نطاق الصحة (مثال: `good → at-risk`) | `customerCode, fromBand, toBand, score` | **يحتاج Job مجدوَل عند البناء (الكود حالياً يحسبها فقط عند فتح الشاشة، لا يوجد رصد تغيّر عبر الزمن)** |
-| `crm.customer.churn_risk_escalated` *(مقترح، نفس ملاحظة أعلاه)* | عبور `churnRisk.level` إلى `high` | `customerCode, risk, level` | إشعار فوري للمندوب/المدير |
-
-> ⚠️ آخر بندين (`health_band_changed`, `churn_risk_escalated`) **غير موجودين كأحداث فعلية في الـ Prototype** — الحساب حالياً "عند الطلب" فقط (وقت فتح الشاشة)، مش مرصود كتغيّر عبر الزمن. أضفناهم هنا كمقترح ضروري لأي نظام إشعارات حقيقي (n8n مثلاً)، لكن لازم يُعتمدوا صراحة كقرار جديد، مش يُفهموا كسلوك موجود بالفعل.
+سجل التدقيق قابل للتلاعب في Prototype (KI-004) — لا يُعتمَد عليه قبل بناء Backend غير قابل للتعديل.
 
 ---
 
-## Standard Error Codes (بدل نصوص الرسائل)
+## Domain Events
 
-> النصوص الحالية في الكود (زي "محجوز لـ..." أو "تم تحويله مسبقاً") مكتوبة بالعربي/الإنجليزي داخل منطق العرض مباشرة، بلا كود موحّد. الجدول ده يقترح الأكواد المعتمدة للـ API القادم (بنفس اصطلاح `docs/01_Standards/API_Standards.md`)، مع إبقاء النص الحالي كـ "الرسالة الافتراضية" فقط.
+| الحدث | يُطلَق عند | الحمولة الأساسية |
+|---|---|---|
+| `crm.lead.created` | إنشاء Lead جديد | `leadId, owner, source, estValue, cur` |
+| `crm.lead.stage_changed` | تغيّر `stage` لأي Lead | `leadId, fromStage, toStage, owner` |
+| `crm.lead.converted` | نجاح `convertLeadToCustomer` | `leadId, customerCode, owner` |
+| `crm.opportunity.created` | إنشاء فرصة | `oppId, custCode, owner, value, cur, stage` |
+| `crm.opportunity.stage_changed` | أي تغيّر مرحلة | `oppId, fromStage, toStage, owner` |
+| `crm.opportunity.won` | الوصول لـ `won` | `oppId, custCode, value, cur, owner` |
+| `crm.opportunity.lost` | الوصول لـ `lost` | `oppId, custCode, value, cur, lostReason, owner` |
+| `crm.opportunity.converted_to_proforma` | نجاح التحويل لبروفورما مع PriceSnapshot | `oppId, proformaId, custCode, selectedPrice, confidenceState` |
+| `crm.customer.duplicate_blocked` | رفض حفظ بسبب INV-01 | `attemptedName, country, existingCode, existingOwner, blockedBy` |
+| `crm.customer.ownership_reassigned` | نجاح `crmReassign` | `customerCode, fromOwner, toOwner, reassignedBy` |
+| `crm.activity.logged` | أي `crmLog()` ناجح | `activityId, refType, refId, type, by` |
+| `crm.task.created` | إنشاء مهمة | `taskId, refType, refId, due, priority, owner` |
+| `crm.task.completed` | إتمام مهمة | `taskId, owner` |
+| `crm.lead.deleted` | نجاح `delLead` | `leadId, deletedBy, wasConverted` |
+| `crm.customer.health_band_changed` *(مقترح — يحتاج Job مجدوَل)* | عبور نطاق الصحة | `customerCode, fromBand, toBand, score` |
+| `crm.customer.churn_risk_escalated` *(مقترح — يحتاج Job مجدوَل)* | عبور `churnRisk.level` لـ `high` | `customerCode, risk, level` |
 
-| الكود | الوصف | الموقف المكافئ في Prototype | HTTP المقترح |
+> ⚠️ آخر بندين غير موجودَين كأحداث فعلية في الـ Prototype — الحساب "عند الطلب" فقط، يحتاجان Job مجدوَل عند البناء.
+
+---
+
+## Standard Error Codes
+
+| الكود | الوصف | الموقف في Prototype | HTTP |
 |---|---|---|---|
-| `CRM_CUSTOMER_DUPLICATE_OWNED` | عميل بنفس الاسم+الدولة محجوز لمندوب آخر | `editCustomer` → "محجوز لـ..." | 409 Conflict |
-| `CRM_CUSTOMER_DUPLICATE_UNOWNED` | تحذير تكرار غير حاسم (بلا مالك/نفس المالك) | `editCustomer` → "يوجد عميل بنفس الاسم" | 200 OK + warning flag (ليس خطأ) |
-| `CRM_LEAD_ALREADY_CONVERTED` | محاولة تحويل Lead محوّل مسبقاً | `convertLeadToCustomer` → "تم تحويله مسبقاً" | 409 Conflict |
-| `CRM_CUSTOMER_NOT_OWNED` | مندوب يحاول تعديل عميل غير مملوك له | `editCustomer` (حارس `customerSaveGuard`) | 403 Forbidden |
-| `CRM_REASSIGN_MANAGER_ONLY` | محاولة إعادة توزيع من غير مدير | `crmReassign` → "للمدير فقط" | 403 Forbidden |
-| `CRM_LEAD_NAME_REQUIRED` | حفظ Lead بدون اسم | `editLead` → "أدخل الاسم" | 422 Unprocessable |
-| `CRM_CUSTOMER_NAME_REQUIRED` | حفظ عميل بدون اسم | `editCustomer` → "أدخل اسم العميل" | 422 Unprocessable |
-| `CRM_ENTITY_NOT_FOUND` | Lead/Opportunity غير موجود عند الفتح/التحديث | فحوصات `if(!o)return` / `if(!l)return` المتكررة | 404 Not Found |
-| `CRM_PROFORMA_PRODUCT_UNMATCHED` | تحويل فرصة لبروفورما بدون تطابق كود منتج | `crmOppToProforma` → تنبيه "اختر المنتج يدوياً" | 200 OK + warning flag (لا يمنع الحفظ) |
-| `CRM_LEAD_DELETE_CONVERTED_BLOCKED` *(مقترح، مشروط بقرار — انظر Open Questions #5 في `CRM.md`)* | محاولة حذف Lead بحالة `converted` | لا يوجد مكافئ حالياً (الحذف مسموح بلا قيد — KI-007) | 409 Conflict |
-| `CRM_OPPORTUNITY_STAGE_TRANSITION_BLOCKED` *(مقترح، مشروط باعتماد ADR-015)* | انتقال مرحلة غير مسموح به بعد تفعيل التقييد | لا يوجد مكافئ حالياً (كل الانتقالات مسموحة) | 409 Conflict |
+| `CRM_CUSTOMER_DUPLICATE_OWNED` | عميل بنفس الاسم+الدولة محجوز لمندوب آخر | `editCustomer` → "محجوز لـ..." | 409 |
+| `CRM_CUSTOMER_DUPLICATE_UNOWNED` | تحذير تكرار غير حاسم | `editCustomer` → "يوجد عميل بنفس الاسم" | 200 + warning |
+| `CRM_LEAD_ALREADY_CONVERTED` | محاولة تحويل Lead محوَّل | `convertLeadToCustomer` → "تم تحويله مسبقاً" | 409 |
+| `CRM_CUSTOMER_NOT_OWNED` | مندوب يحاول تعديل عميل غير مملوك له | `editCustomer` (حارس `customerSaveGuard`) | 403 |
+| `CRM_REASSIGN_MANAGER_ONLY` | محاولة إعادة توزيع من غير مدير | `crmReassign` → "للمدير فقط" | 403 |
+| `CRM_LEAD_NAME_REQUIRED` | حفظ Lead بدون اسم | `editLead` → "أدخل الاسم" | 422 |
+| `CRM_CUSTOMER_NAME_REQUIRED` | حفظ عميل بدون اسم | `editCustomer` → "أدخل اسم العميل" | 422 |
+| `CRM_ENTITY_NOT_FOUND` | Lead/Opportunity غير موجود | فحوصات `if(!o)return` المتكررة | 404 |
+| `CRM_PROFORMA_PRODUCT_UNMATCHED` | تحويل فرصة بدون تطابق كود منتج | `crmOppToProforma` → تنبيه | 200 + warning |
+| `CRM_PROFORMA_PRICE_REQUIRED` | لم يختر المستخدم سعراً قبل التحويل | (Production-only) | 422 |
+| `PRC_PRICE_EXCEPTION_REQUIRED` | سعر يستوجب `approvePriceException` | (Production-only — Pricing Integration) | 403 |
+| `CRM_LEAD_DELETE_CONVERTED_BLOCKED` *(مقترح — OQ-5)* | حذف Lead بحالة `converted` | لا يوجد مكافئ حالياً | 409 |
+| `CRM_OPPORTUNITY_STAGE_TRANSITION_BLOCKED` *(مقترح — ADR-015)* | انتقال مرحلة غير مسموح | لا يوجد مكافئ حالياً | 409 |
 
 ---
 
 ## Open Questions (خاصة بالدمج التقني)
 
-1. هل نطاق التدقيق (Audit Rules أعلاه) يحتاج توسيع ليشمل `crm.opportunity.stage_changed` بشكل عام، أم فقط عند تجاوز المدير بعد ADR-015؟
-2. هل نعتمد حدثي `health_band_changed` و`churn_risk_escalated` المقترحين (يحتاجان Job مجدول جديد لا يوجد له مكافئ في الـ Prototype)؟
+1. هل نطاق Audit يشمل `crm.opportunity.stage_changed` عموماً، أم فقط عند تجاوز ADR-015؟
+2. هل نعتمد `health_band_changed` و`churn_risk_escalated` (يحتاجان Job مجدوَل)؟
 
 ---
 
 ## Cross-references
-- `docs/03_Business_Logic/CRM.md`: منطق الأعمال الأساسي (المرجع الأعلى لأي تعارض)
-- `docs/02_Governance/ADR/ADR-015.md`: قرار تقييد الانتقالات (Proposed)
-- `docs/01_Standards/API_Standards.md`: اصطلاح أكواد الخطأ العام ومسارات الـ API
-- `docs/02_Governance/Known_Issues.md`: KI-002 (صلاحيات واجهة فقط)، KI-004 (سجل تدقيق قابل للتلاعب)
+
+### Related ADRs
+- `docs/02_Governance/ADR/ADR-015.md` — تقييد الانتقالات (Proposed)
+- `docs/02_Governance/ADR/ADR-018.md` — نموذج صلاحيات التسعير (صلاحيات Pricing Integration)
+- `docs/02_Governance/ADR/ADR-019.md` — Domain Event (يؤثر على `crm.opportunity.converted_to_proforma`)
+
+### Depends On
+- `docs/03_Business_Logic/CRM/CRM.md` — منطق الأعمال (المرجع الأعلى)
+- `docs/03_Business_Logic/Pricing/Pricing_Implementation_Guide.md` — PriceSnapshot Schema، Staleness Logic
+- `docs/01_Standards/API_Standards.md` — اصطلاح أكواد الخطأ
+- `docs/02_Governance/Known_Issues.md` — KI-002, KI-004, KI-007

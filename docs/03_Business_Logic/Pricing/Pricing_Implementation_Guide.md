@@ -3,28 +3,48 @@
 ## Document Information
 ```
 Document Name:  Pricing Implementation Guide
-Version:        1.0.0 (مبني على ADR-017 وADR-018)
+Version:        1.1.0 (5 صلاحيات + Cost Override Audit + Staleness Logic + Migration Note)
 Status:         Approved
 Classification: Source of Truth
 Owner:          Solution Architecture Team
 Approved-by:    Product Owner
 Approved-date:  2026-07-18
-Last-Updated:   2026-07-18
+Last-Updated:   2026-07-21
 ```
 
-> **العلاقة بـ `Pricing.md`:** نفس مبدأ `CRM/CRM_Implementation_Guide.md` — هذا الملف "إزاي يتربط بالنظام تقنياً". كل بند هنا مبني مباشرة على قرار معتمد (ADR-017 أو ADR-018)، لا افتراض جديد.
+> **العلاقة بـ `Pricing.md`:** هذا الملف "إزاي يتربط بالنظام تقنياً". كل بند مبني مباشرة على قرار معتمد (ADR-017/018)، لا افتراض جديد.
+>
+> **ميزة Cost Override:** Production Design — لا مكافئ كامل في الـ Prototype. POC جزئي في `experiments/pricing-engine-poc.html` (عرض CRM بدون تكلفة + `isCostStale`).
 
 ---
 
 ## Permissions Matrix
 
-| الصلاحية | الوصف | من يملكها افتراضياً |
-|---|---|---|
-| **`pricing.viewCost`** | رؤية تفصيل التكلفة/الهدر/الهامش/الربح كاملاً في حاسبة التسعير وسلّة التسعير | مدير/مالك (`role.all`) — قابل للمنح لأي دور آخر عبر مصفوفة الصلاحيات |
-| **`pricing.viewSuggestedOnly`** | (الحالة الافتراضية لغياب `pricing.viewCost`) رؤية السعر المقترح/سعر البيع النهائي فقط | أي دور بلا `pricing.viewCost` صراحة |
-| **`pricing.approveLowMargin`** | تجاوز حد الهامش الأدنى عند حفظ فاتورة، بشرط سبب إجباري | مدير/مالك افتراضياً — نفس منطق `crmIsManager()` المُعاد استخدامه هنا، وليس اسم دور جديد |
+| الصلاحية | ما تتيح | تشمل ضمنياً | الحالة الافتراضية |
+|---|---|---|---|
+| **`pricing.viewSuggestedPrice`** | السعر الاسترشادي + حالة الموثوقية | — | تُمنح يدوياً |
+| **`pricing.viewCost`** | تفصيل التكلفة / الهدر / الهامش / الربح / بنود قديمة بالتفصيل | `viewSuggestedPrice` | مدير/مالك (`role.all`) |
+| **`pricing.editCostOverride`** | تعديل مؤقت على بنود التكلفة (Production-only) | — | تُمنح يدوياً |
+| **`pricing.editMargin`** | تغيير الهامش المستهدف في الحاسبة | — | مدير/مالك افتراضياً |
+| **`pricing.approvePriceException`** | اعتماد حالات استثنائية (هامش منخفض / بيانات قديمة / Override / سعر يدوي) | — | مدير/مالك (`role.all`) |
 
-⚠️ **لا تُستحدَث أسماء أدوار جديدة** (لا "Finance"، لا "Sales Manager") — الصلاحيات أعلام منطقية تُمنح عبر نظام الأدوار الحالي (ADR-018، رفض صريح لتصنيف الأدوار الثابت).
+**قواعد التضمين:**
+- `viewCost` ⊃ `viewSuggestedPrice` — من يملك `viewCost` يرى السعر ضمنياً بلا حاجة لمنح الاثنتين.
+- من لا يملك `viewSuggestedPrice` ولا `viewCost`: **لا يرى أي معلومات تسعير**.
+- **لا أسماء أدوار ثابتة** — الصلاحيات أعلام ديناميكية (`role.permissions[]`) نفس نمط `crmIsManager()`.
+
+### Migration Note — `approveLowMargin` → `approvePriceException`
+> ⚠️ **للمطورين والـ AI Agents:** هجرة مطلوبة عند التنفيذ.
+
+| القديم | الجديد |
+|---|---|
+| `can('pricing','approveLowMargin')` | `can('pricing','approvePriceException')` |
+| حدث: `pricing.margin_floor_overridden` | حدث: `pricing.exception_approved` + `{exceptionType: 'low_margin'}` |
+| سبب للهامش فقط | سبب لكل أنواع الاستثناءات |
+
+الأدوار التي كانت تملك `approveLowMargin` تُمنح `approvePriceException` تلقائياً — لا تراجع في الصلاحيات.
+
+---
 
 ## Approval Workflow
 
@@ -32,69 +52,163 @@ Last-Updated:   2026-07-18
 حفظ فاتورة (أو تحديثها)
         │
         ▼
-حساب الهامش الفعلي الناتج (بعد أي خصم مطبَّق)
+هل يوجد Cost Override في جلسة التسعير هذه؟
+        │
+   نعم ──► يستوجب pricing.approvePriceException
         │
         ▼
-belowMarginFloor(invoice)? ──── لا ───► حفظ عادي (مروراً بفحص exceedsLimit الحالي كما هو)
+حساب الهامش الفعلي الناتج (بعد أي خصم)
+        │
+        ▼
+belowMarginFloor(invoice)? ── لا ──► فحص exceedsLimit الحالي → حفظ عادي
         │ نعم
         ▼
-المستخدم يملك pricing.approveLowMargin؟
+هل بيانات التكلفة متجاوِزة 90 يوماً؟ (أو سعر يدوي خارج السياسة؟)
+        │
+        ▼
+المستخدم يملك pricing.approvePriceException؟
         │
    ┌────┴────┐
    لا         نعم
    │           │
    ▼           ▼
-رفض الحفظ    طلب سبب إجباري (نفس نمط ADR-015)
-+ رسالة       │
-PRC_MARGIN_    ▼
-BELOW_FLOOR   حفظ + تسجيل تدقيق إلزامي (Audit)
-              + حدث pricing.margin_floor_overridden
+رفض + كود   طلب سبب إجباري
+PRC_PRICE_    │
+EXCEPTION_    ▼
+REQUIRED   حفظ + Audit: pricing.exception_approved
+              + {exceptionType, reason, approvedBy, approvedAt}
 ```
 
-**الحد الأدنى للهامش (Minimum Margin Floor):** إعداد عام جديد على مستوى النظام — **القيمة الافتراضية المقترحة 10%، تحتاج تأكيد نهائي من الفريق قبل التنفيذ الفعلي** (ليست قراراً مغلقاً في ADR-018 نفسه).
+**الحد الأدنى للهامش:** إعداد عام `pricingSettings.minMarginFloor` — القيمة يحددها صاحب الصلاحية (انظر `Pricing_Policy.md §4`). القيمة الافتراضية المقترحة 10% تحتاج تأكيد Product Owner.
+
+---
+
+## Cost Override — Entity Schema
+
+> **Production Design — لا مكافئ في الـ Prototype.**
+
+```typescript
+interface CostOverride {
+  id:              string;          // UUID
+  pricingSessionId: string;         // مرجع لجلسة التسعير
+  costComponent:   CostComponent;   // البند المعدَّل
+  originalValue:   number;          // القيمة الأصلية (بعملة المنتج)
+  overrideValue:   number;          // القيمة المعدَّلة
+  reason:          string;          // سبب التعديل (إجباري، min 10 chars)
+  overriddenBy:    string;          // userId
+  overriddenAt:    DateTime;        // UTC timestamp
+  scope:           'single_session'; // ثابت — لا خيار آخر حالياً
+  companyId:       string;          // Multi-tenant
+}
+
+type CostComponent =
+  | 'raw_material'   // مواد خام
+  | 'packaging'      // تعبئة وتغليف
+  | 'freight'        // شحن
+  | 'manufacturing'  // تصنيع/تشغيل
+  | 'waste'          // هدر
+  | 'commission'     // عمولات
+  | 'direct_expense' // مصروفات مباشرة
+  | 'other';         // أي بند آخر في محرك التكلفة
+```
+
+**قواعد العزل (لا استثناء):**
+- Override لا يكتب في `DB.products`, `DB.purchases`, `DB.inventory`, أو أي جدول محاسبي.
+- Override يُقرأ فقط داخل `pricingCalc` خلال جلسة التسعير الحالية.
+- عند انتهاء الجلسة: Override يُحفَظ في Audit فقط — لا يُطبَّق على جلسات لاحقة.
+
+---
+
+## Staleness Display Logic
+
+| الحالة | الشرط (Prototype: `isCostStale`) | عرض المستخدم |
+|---|---|---|
+| `fresh` | كل بنود التكلفة < 90 يوماً | Badge "محدَّث ✓" |
+| `stale` | أي بند ≥ 90 يوماً | تنبيه: **"السعر الاسترشادي مبني جزئياً على بيانات تجاوزت 3 أشهر تقريباً ويحتاج مراجعة الإدارة."** |
+| `no_purchase` | لا يوجد سجل شراء | "لا يوجد سعر مرجعي حديث — برجاء طلب اعتماد تسعير من الإدارة." |
+
+**للإدارة (`viewCost`):** تفصيل كل بند قديم — اسم البند، تاريخ آخر تحديث، المصدر، القيمة.
+**لمستخدم CRM (`viewSuggestedPrice` فقط):** التنبيه العام فقط — بلا تفاصيل.
+
+**حساب الـ 90 يوم:** من `lastPurchase()` لكل بند — كما في `isCostStale()` في الـ Prototype (مصدر الحقيقة). الحساب على تاريخ **الشراء** لا تاريخ آخر بيع.
+
+---
+
+## Suggested Price Snapshot — Schema
+
+يُحفَظ عند اختيار المستخدم السعر قبل تحويل الفرصة لبروفورما:
+
+```typescript
+interface PriceSnapshot {
+  suggestedPrice:      number;
+  priceConfidenceState: 'fresh' | 'stale' | 'no_purchase';
+  costOverridePresent:  boolean;
+  selectedPrice:        number;           // ما اختاره المستخدم (قد يختلف عن Suggested)
+  selectedBy:           string;           // userId
+  selectedAt:           DateTime;
+  exceptionApproved:    boolean;          // true إذا استوجبت الحالة approvePriceException
+  exceptionReason?:     string;
+  pricingEngineVersion: string;           // للمستقبل — إصدار محرك التسعير وقت الحساب
+}
+```
+
+---
 
 ## Notifications
-- تنبيه فوري للمدير عند أي تجاوز لحد الهامش الأدنى (`pricing.margin_floor_overridden`).
-- لا توجد قناة بريد/واتساب حالياً (نفس الفجوة العامة الموثَّقة في `CRM/CRM_Implementation_Guide.md`) — تنبيهات داخل التطبيق فقط.
+- تنبيه فوري للمدير عند أي `pricing.exception_approved`.
+- لا قناة بريد/واتساب حالياً — تنبيهات داخل التطبيق فقط (فجوة موثَّقة في `CRM_Implementation_Guide.md`).
 
-## Domain Events
-
-| الحدث | يُطلَق عند | الحمولة الأساسية |
-|---|---|---|
-| `pricing.suggestion.calculated` | كل استدعاء ناجح لـ `pricingCalc` | `prodCode, qty, unitCost, wastePct, overheadRate, marginPct, suggestedUnitPrice` |
-| `pricing.override.applied` | تعديل يدوي للسعر في سلّة التسعير | `prodCode, calculatedPrice, overridePrice` |
-| `pricing.margin_floor_overridden` | تجاوز مدير لحد الهامش الأدنى (بسبب إجباري) | `invoiceId, resultingMargin, floorPct, reason, overriddenBy` |
-| `pricing.cost_component.category_used` *(مقترح، مرتبط بـ ADR-017)* | استخدام متوسط تاريخي من `DB.expenses` لأي مكوّن (شحن/تعبئة/تأمين/بنكية/فحص/شهادات) | `category, averageValueEGP, sampleSizeInvoices, windowDays:90` |
-
-## Standard Error Codes
-
-| الكود | الوصف | HTTP المقترح |
-|---|---|---|
-| `PRC_MARGIN_BELOW_FLOOR` | الهامش الناتج أقل من الحد الأدنى، والمستخدم بلا صلاحية تجاوز | 403 Forbidden |
-| `PRC_MARGIN_OVERRIDE_REASON_REQUIRED` | محاولة تجاوز الحد الأدنى بلا إدخال سبب | 422 Unprocessable Entity |
-| `PRC_COST_HIDDEN` | محاولة الوصول لبيانات تكلفة من مستخدم بلا `pricing.viewCost` | 403 Forbidden |
-| `PRC_NO_RECENT_REFERENCE_COST` | لا يوجد سعر مرجعي حديث (منتج بلا شراء خلال 90 يوم أو بلا شراء إطلاقاً) | 200 OK + `isSuggested:false` (ليس خطأ مانع) |
-
-## API Mapping (توضيحي، غير نهائي — ينتظر بناء أول نسخة فعلية من عقد الـ API)
-
-| قاعدة العمل | نقطة API المقترحة | ملاحظة |
-|---|---|---|
-| حساب سعر مقترح لمنتج واحد | `POST /api/v1/pricing/suggest` | يتبع اصطلاح `docs/01_Standards/API_Standards.md` |
-| سلّة تسعير متعددة المنتجات | `POST /api/v1/pricing/basket/calculate` | — |
-| حفظ فاتورة (يشمل فحص `belowMarginFloor`) | يبقى ضمن `POST /api/v1/sales/invoices` الموجود أصلاً في وحدة Sales — **ليس endpoint منفصل للتسعير** | فحص الهامش جزء من حفظ الفاتورة، لا عملية منفصلة |
+---
 
 ## Audit Rules
 
-يُسجَّل إلزامياً (بناءً على ADR-018):
-- كل تجاوز لحد الهامش الأدنى: المستخدم، الفاتورة، الهامش الناتج، السبب المُدخَل، التاريخ/الوقت.
+كل الأحداث التالية تُسجَّل إلزامياً في `auditLog`:
 
-⚠️ **لا يُسجَّل حالياً (فجوة موروثة من الوضع الحالي، خارج نطاق ADR-018 المباشر):** تعديل السعر يدوياً (`overridePrice`) في سلّة التسعير نفسها (قبل ما يتحول لفاتورة) — هذا لسه غير مغطى بتصميم تدقيق مخصَّص، لأنه سابق على مرحلة "حفظ الفاتورة" التي عندها فقط يُفحَص `belowMarginFloor`.
+| الحدث | يُسجَّل عند | الحقول الإلزامية |
+|---|---|---|
+| `pricing.margin_changed` | تغيير الهامش بصلاحية `editMargin` | userId, oldMargin, newMargin, productCode |
+| `pricing.cost_override_created` | إنشاء Cost Override | userId, costComponent, originalValue, overrideValue, reason |
+| `pricing.exception_approved` | اعتماد استثناء | userId, exceptionType, reason, invoiceId/sessionId |
+| `pricing.price_snapshot_saved` | حفظ Snapshot عند تحويل فرصة | userId, selectedPrice, confidenceState, opportunityId |
+
+---
+
+## Standard Error Codes
+
+| الكود | الحالة | HTTP |
+|---|---|---|
+| `PRC_NO_COST_DATA` | لا يوجد سجل شراء لحساب التكلفة | 422 |
+| `PRC_COST_STALE` | بيانات التكلفة قديمة (>90 يوم) | 200 + warning |
+| `PRC_MARGIN_BELOW_FLOOR` | الهامش أقل من الحد الأدنى | 409 |
+| `PRC_PRICE_EXCEPTION_REQUIRED` | الحالة تستوجب `approvePriceException` | 403 |
+| `PRC_OVERRIDE_SCOPE_VIOLATION` | محاولة تطبيق Override خارج الجلسة | 422 |
+| `PRC_MARGIN_NEGATIVE` | هامش سالب (PINV-08 + PINV-10) | 422 |
+
+---
+
+## Domain Events
+
+| الحدث | المُشغِّل | المستهلك |
+|---|---|---|
+| `pricing.suggested_price_viewed` | مستخدم CRM يفتح السعر الاسترشادي | Audit |
+| `pricing.cost_override_created` | إنشاء Override | Audit + Notification للمدير |
+| `pricing.exception_approved` | اعتماد استثناء | Audit + Notification للمدير |
+| `pricing.price_snapshot_saved` | تحويل فرصة لبروفورما بسعر مختار | CRM (تحديث الفرصة) + Audit |
 
 ---
 
 ## Cross-references
-- `docs/03_Business_Logic/Pricing/Pricing.md`: منطق الأعمال الأساسي (المرجع الأعلى لأي تعارض)
-- `docs/02_Governance/ADR/ADR-017.md`: مصادر مكوّنات التكلفة
-- `docs/02_Governance/ADR/ADR-018.md`: صلاحية رؤية التكلفة وحد الهامش الأدنى
-- `docs/02_Governance/ADR/ADR-015.md`: نمط "سبب إجباري" المُعاد استخدامه هنا
-- `docs/01_Standards/API_Standards.md`: اصطلاح أكواد الخطأ ومسارات الـ API
+
+### Related ADRs
+- `docs/02_Governance/ADR/ADR-017.md` — مصادر مكوّنات التكلفة
+- `docs/02_Governance/ADR/ADR-018.md` — نموذج الصلاحيات الكامل (5 صلاحيات)
+
+### Related RFCs
+- `docs/03_Business_Logic/Pricing/Pricing_RFC.md` — RFC-PRC-001 ✅ · RFC-PRC-002 ✅ · RFC-PRC-004 ⬜
+- `docs/03_Business_Logic/Accounting/Accounting_RFC.md → RFC-ACC-001`
+
+### Business Logic Source
+- `docs/03_Business_Logic/Pricing/Pricing.md`
+
+### Policy
+- `docs/04_Policies/Pricing_Policy.md`

@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Accounting Engine RFCs
-Version:        0.1.0
+Version:        0.2.0 (ملاحظة: بُعد Pricing→Proforma Snapshot من RFC-ACC-001 محسوم)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -20,7 +20,7 @@ Last-Updated:   2026-07-21
 RFC:          RFC-ACC-001
 Title:        Snapshot vs Recalculation of Derived Values
 Type:         Cross-Module
-Status:       Open
+Status:       Partially Resolved — Open for Inventory & Accounting dimensions
 Scope:        Accounting · Pricing · Inventory
 Owner:        Solution Architecture Team
 Opened:       2026-07-21
@@ -28,27 +28,35 @@ Referenced-by: Pricing.md · Inventory_Production.md
 Expected-outcome: Cross-Module ADR
 ```
 
-> **هذا هو المصدر القانوني الوحيد (Canonical) لهذا السؤال.** أي موديول آخر يمسّه يُشير إليه هنا عبر cross-reference، ولا يفتح نقاشاً موازياً — تفادياً لثلاثة قرارات متعارضة لنفس المشكلة الجذرية.
+> **هذا هو المصدر القانوني الوحيد (Canonical) لهذا السؤال.** أي موديول آخر يمسّه يُشير إليه هنا عبر cross-reference، ولا يفتح نقاشاً موازياً.
 
 ### Problem (المشكلة الجذرية)
 هل يُجمِّد النظام القيمة المشتقّة **لحظة الحدث** (Snapshot)، أم يعيد حسابها من **الحالة الحالية للنظام** كلما طُلبت (Recalculation)؟
 
-النمط الحالي في الـ Prototype هو **Recalculation** في عدة مواضع — القيمة تُشتقّ حيّةً وقت العرض/الطلب، بلا لقطة محفوظة. الأثر: نفس السؤال التاريخي ("ليه كانت القيمة كذا يوم كذا؟") قد لا يكون له جواب قابل لإعادة البناء.
+### Resolution Status by Dimension (حالة الحسم لكل بُعد)
+
+| البُعد | الموديول | الحالة | القرار |
+|---|---|---|---|
+| **Pricing → Proforma Snapshot** | Pricing → CRM | ✅ **محسوم (2026-07-21)** | السعر المختار قبل تحويل الفرصة يُحفَظ Snapshot — البروفورما لا تُعيد الحساب. موثَّق في `Pricing.md` Business Rules §Suggested Price & CRM Integration |
+| **Commission Recalculation** | Pricing (PINV-12) | 🟡 مفتوح | العمولة تُعاد حسابها من حالة النظام الحالية — Snapshot لم يُقرَّر |
+| **Inventory Unit Cost** | Inventory | 🟡 مفتوح | التكلفة ديناميكية وقت الطلب — يُحسَم عند توثيق Inventory |
+| **Accounting Derived Values** | Accounting | 🟡 مفتوح | نصيب المصروف العام والمخصصات — يُحسَم في جلسة 5 من Accounting |
 
 ### Scope — لماذا هي عابرة للموديولات
 | الموديول | مظهر المشكلة | القرينة |
 |---|---|---|
-| **Pricing** | السعر المقترح والعمولة يُعاد اشتقاقهما بأثر رجعي من الحالة الحالية | `Pricing.md` — PINV-12 + Price Snapshot Policy (Open Question #5) |
-| **Inventory** | تكلفة الوحدة تُقيَّم ديناميكياً وقت الطلب، لا تُخزَّن كرقم ثابت | تُوثَّق عند استخراج موديول Inventory (رقم 3 في الطابور) |
-| **Accounting** | نصيب المصروف العام على الشحنة + المخصصات محسوبة على حالة النظام الحالية | `Accounting.md` — Open Questions #2 |
+| **Pricing** | السعر المقترح → **محسوم** (Snapshot عند التحويل) | `Pricing.md` — OQ-1 مغلق |
+| **Pricing** | العمولة تُعاد اشتقاقها بأثر رجعي | PINV-12 + Price Snapshot Policy |
+| **Inventory** | تكلفة الوحدة ديناميكية وقت الطلب | تُوثَّق عند استخراج موديول Inventory |
+| **Accounting** | نصيب المصروف العام + المخصصات من حالة النظام الحالية | `Accounting.md` — Open Questions #2 |
 
-### Options (لا تُحلَّل الآن — تُفتَح في جلسة 5)
-تُترَك فارغة عمداً حتى يكتمل مسح الحالات المحاسبية في جلسة 5؛ ملء الخيارات قبل رؤية كل المظاهر يُنتج توصية مبتسرة. (مبدأ: لا قرار قبل اكتمال الاستخراج.)
+### Options (تُحلَّل في جلسة 5 من Accounting للأبعاد المفتوحة)
+تُترَك فارغة عمداً — الأبعاد المفتوحة تحتاج مسح الحالات المحاسبية الكامل أولاً.
 
 ### Governance Note
-النطاق عابر للموديولات ⇒ المخرَج المتوقَّع **Cross-Module ADR** لا قرار محلي. لو تكرّر نمط "الـ RFC العابر للموديولات" مستقبلاً، يُنظَر في إنشاء `02_Governance/Cross_Module_RFC/` كموطن قانوني بدل حشره داخل موديول — قرار بنية توثيق مؤجَّل لك كـ architect.
+النطاق عابر للموديولات ⇒ المخرَج المتوقَّع **Cross-Module ADR**. نقطة التبلور: جلسة 5 من Accounting بعد اكتمال مسح جميع الحالات.
 
 ---
 
 ## مرشّحات أخرى
-_(لا شيء بعد — تُضاف عند ظهورها في الجلسات 2→5.)_
+_(لا شيء بعد — تُضاف عند ظهورها في الجلسات 3→5.)_
