@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Pricing Implementation Guide
-Version:        1.3.0 (محاذاة الاستثناءات مع Pricing_Policy + قاعدة الإنشاء الشرطية لـ PriceGuidanceRecord + توضيح PRC_NO_COST_DATA + فصل حوكمة ADR)
+Version:        1.4.0 (تصحيح: فئات approvePriceException الأربعة في Permissions Matrix)
 Status:         Approved
 Classification: Source of Truth
 Owner:          Solution Architecture Team
@@ -26,7 +26,7 @@ Last-Updated:   2026-07-21
 | **`pricing.viewCost`** | تفصيل التكلفة / الهدر / الهامش / الربح / بنود قديمة بالتفصيل | `viewSuggestedPrice` | مدير/مالك (`role.all`) |
 | **`pricing.editCostOverride`** | تعديل مؤقت على بنود التكلفة (Production-only) | — | تُمنح يدوياً |
 | **`pricing.editMargin`** | تغيير الهامش المستهدف في الحاسبة | — | مدير/مالك افتراضياً |
-| **`pricing.approvePriceException`** | اعتماد حالات استثنائية (هامش منخفض / بيانات قديمة / Override / سعر يدوي) | — | مدير/مالك (`role.all`) |
+| **`pricing.approvePriceException`** | اعتماد حالات استثنائية: هامش منخفض / خصم يتجاوز الحد المعتمد / بيانات تكلفة قديمة / Cost Override | — | مدير/مالك (`role.all`) |
 
 **قواعد التضمين:**
 - `viewCost` ⊃ `viewSuggestedPrice` — من يملك `viewCost` يرى السعر ضمنياً بلا حاجة لمنح الاثنتين.

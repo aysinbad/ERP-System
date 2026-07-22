@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Pricing RFCs
-Version:        1.4.0 (تصحيح شروط فتح RFC-PRC-004 + توضيح PriceGuidanceRecord الشرطي)
+Version:        1.5.0 (تصحيح: RFC-ACC-001 بثلاثة أبعاد مفتوحة في RFC-PRC-003 والملاحظة الختامية)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -28,8 +28,11 @@ Last-Updated:   2026-07-21
 **الحالة:** 🟡 رُقِّي إلى RFC-ACC-001 (Cross-Module, Canonical) في `Accounting_RFC.md`.
 
 **ملاحظة (2026-07-21):** بُعد واحد من هذا RFC تم حسمه ضمن ميزة السعر الاسترشادي السري:
-- **محسوم:** `unitPrice` الفعلي على كل بند في البروفورما يُدخَل مستقلاً — لا يعتمد على السعر الاسترشادي ولا يُنسَخ منه تلقائياً. السعر الاسترشادي يُخزَّن اختيارياً كـ `PriceGuidanceRecord` (metadata للتدقيق فقط، على مستوى كل بند).
-- **لا يزال مفتوحاً في RFC-ACC-001:** نمط Recalculation في حساب العمولة (`commissionRows`) وتكلفة الوحدة في Inventory.
+- **محسوم — Pricing Guidance at Proforma Decision:** `unitPrice` الفعلي على كل بند في البروفورما يُدخَل مستقلاً — لا يعتمد على السعر الاسترشادي ولا يُنسَخ منه تلقائياً. السعر الاسترشادي يُخزَّن **شرطياً** كـ `PriceGuidanceRecord` (metadata للتدقيق فقط، على مستوى كل بند، فقط عند عرضه بنجاح) — وليس السعر التجاري المختار.
+- **لا يزال مفتوحاً في RFC-ACC-001:**
+  - **Commission Recalculation** — نمط إعادة الاشتقاق في حساب العمولة (`commissionRows`، PINV-12).
+  - **Inventory Unit Cost** — تكلفة الوحدة المُشتَقّة ديناميكياً وقت الطلب.
+  - **Accounting Derived Values** — نصيب المصروف العام والمخصصات المحسوبة من الحالة الحالية.
 
 ---
 
@@ -73,4 +76,4 @@ Opened:       2026-07-21
 - البروفورما لا تعتمد على السعر الاسترشادي ولا تُعيد حسابه.
 - Open Question #1 في `Pricing.md` أُغلق بناءً على هذا القرار.
 
-RFC-ACC-001 **يبقى مفتوحاً** لبُعدَي Inventory وAccounting.
+RFC-ACC-001 **يبقى مفتوحاً** لأبعاد Commission Recalculation وInventory Unit Cost وAccounting Derived Values.

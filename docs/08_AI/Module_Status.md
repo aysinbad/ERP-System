@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Module Status (Detailed)
-Version:        1.3.0 (جدول إصدارات صريح + محاذاة حوكمية RFC-ACC-001/ADR-018 + قاعدة PriceGuidanceRecord الشرطية)
+Version:        1.5.0 (مزامنة إصدارات قسم Pricing التفصيلي مع جدول الإصدارات)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -34,16 +34,16 @@ Last-Updated:   2026-07-21
 
 | الملف | الإصدار |
 |---|---|
-| `Pricing.md` | v1.5.0 |
-| `Pricing_Implementation_Guide.md` | v1.3.0 |
-| `Pricing_RFC.md` | v1.4.0 |
+| `Pricing.md` | v1.7.0 |
+| `Pricing_Implementation_Guide.md` | v1.4.0 |
+| `Pricing_RFC.md` | v1.5.0 |
 | `CRM.md` | v2.3.0 |
 | `CRM_Implementation_Guide.md` | v1.6.0 |
 | `Accounting_RFC.md` | v0.5.0 |
 | `ADR-018.md` | Rev. 3 |
 | `Pricing_Policy.md` | v1.2.0 |
 | `AI_CONTEXT.md` | v2.3.0 |
-| `Module_Status.md` | v1.3.0 (هذا الملف) |
+| `Module_Status.md` | v1.5.0 (هذا الملف) |
 
 ---
 
@@ -52,12 +52,12 @@ Last-Updated:   2026-07-21
 **الجلسات:** 6/6 مكتملة. الحالة: `Approved`.
 
 **تحديث 2026-07-21 — ميزة السعر الاسترشادي السري:**
-- `Pricing.md` v1.3.0: Entities #8 (SuggestedPrice) · #9 (PriceConfidenceState) · #10 (CostOverride) · Business Rules §Suggested Price & CRM Integration (6 قواعد).
+- `Pricing.md` v1.7.0: Entities #8 (SuggestedPrice) · #9 (PriceConfidenceState) · #10 (CostOverride) · Business Rules §Suggested Price & CRM Integration (6 قواعد، قاعدة 5 شرطية).
 - **OQ-1 مغلق** — بالصياغة الصحيحة: CRM يعرض السعر الاسترشادي كمرجع اختياري مستقل في **Price Guidance Panel**، البروفورما حرة في استخدام `unitPrice` مختلف.
-- `Pricing_Implementation_Guide.md` v1.1.0: Permissions Matrix (5 صلاحيات) · Cost Override Audit Entity · Staleness Display Logic · Price Guidance Record Schema.
-- `Pricing_RFC.md` v1.4.0: RFC-PRC-004 (Future Enhancement، شروط الفتح مُعدَّلة) · RFC-ACC-001 بُعد "Pricing Guidance at Proforma Decision" محسوم.
-- `docs/04_Policies/Pricing_Policy.md`: جديد — سياسة إدارية بلا أرقام ثابتة ولا أسماء برمجية.
-- **ADR-018 موسَّع:** 5 صلاحيات · `approvePriceException` بدل `approveLowMargin` · Migration Note.
+- `Pricing_Implementation_Guide.md` v1.4.0: Permissions Matrix (5 صلاحيات) · Cost Override Audit Entity · Staleness Display Logic · PriceGuidanceRecord Schema (line-level، شرطي).
+- `Pricing_RFC.md` v1.5.0: RFC-PRC-004 (Future Enhancement، شروط الفتح مُعدَّلة) · RFC-ACC-001 بُعد "Pricing Guidance at Proforma Decision" محسوم.
+- `docs/04_Policies/Pricing_Policy.md` v1.2.0: سياسة إدارية بلا أرقام ثابتة ولا أسماء برمجية.
+- **ADR-018 (Rev. 3):** 5 صلاحيات · `approvePriceException` بدل `approveLowMargin` (4 فئات استثناء بالضبط) · Migration Note.
 
 **اكتشافات جوهرية سابقة (لا تزال صالحة):**
 - باگ مؤكَّد في BOM متداخل (PINV-07) — غير مُفعَّل بالبيانات الحالية.
@@ -84,8 +84,8 @@ Last-Updated:   2026-07-21
 الحالة: `In Review`. لا يُعتمد قبل حسم ADR-015 (وADR-016 اختيارياً).
 
 **تحديث 2026-07-21:**
-- `CRM.md` v2.2.0: Business Rule #3 محدَّثة · **Business Rules #12 و#13 مضافتان** (Pricing Visibility · Price Guidance Panel).
-- `CRM_Implementation_Guide.md` v1.2.0: **قسم Pricing Integration كامل** (Price Guidance Panel flow · PriceGuidanceRecord Schema · Error Codes · Domain Events).
+- `CRM.md` v2.3.0: Business Rule #3 محدَّثة · **Business Rules #12 و#13 مضافتان** (Pricing Visibility · Price Guidance Panel، بقاعدة إنشاء شرطية).
+- `CRM_Implementation_Guide.md` v1.6.0: **قسم Pricing Integration كامل** (Price Guidance Flow بمنطق شرطي · PriceGuidanceRecord Schema · Error Codes · Domain Events).
 - الربط مع ADR-018 (`viewSuggestedPrice` · `approvePriceException`) موثَّق.
 
 ---
