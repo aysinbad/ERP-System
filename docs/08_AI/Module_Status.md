@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Module Status (Detailed)
-Version:        1.1.0 (تحديث Pricing + CRM — ميزة السعر الاسترشادي)
+Version:        1.3.0 (جدول إصدارات صريح + محاذاة حوكمية RFC-ACC-001/ADR-018 + قاعدة PriceGuidanceRecord الشرطية)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -28,6 +28,25 @@ Last-Updated:   2026-07-21
 
 ---
 
+## أحدث الإصدارات (Version Tracking)
+
+> مرجع سريع للتحقق من تطابق نسخ الملفات — يُحدَّث مع كل جولة تصحيح.
+
+| الملف | الإصدار |
+|---|---|
+| `Pricing.md` | v1.5.0 |
+| `Pricing_Implementation_Guide.md` | v1.3.0 |
+| `Pricing_RFC.md` | v1.4.0 |
+| `CRM.md` | v2.3.0 |
+| `CRM_Implementation_Guide.md` | v1.6.0 |
+| `Accounting_RFC.md` | v0.5.0 |
+| `ADR-018.md` | Rev. 3 |
+| `Pricing_Policy.md` | v1.2.0 |
+| `AI_CONTEXT.md` | v2.3.0 |
+| `Module_Status.md` | v1.3.0 (هذا الملف) |
+
+---
+
 ## Pricing (Approved)
 
 **الجلسات:** 6/6 مكتملة. الحالة: `Approved`.
@@ -36,7 +55,7 @@ Last-Updated:   2026-07-21
 - `Pricing.md` v1.3.0: Entities #8 (SuggestedPrice) · #9 (PriceConfidenceState) · #10 (CostOverride) · Business Rules §Suggested Price & CRM Integration (6 قواعد).
 - **OQ-1 مغلق** — بالصياغة الصحيحة: CRM يعرض السعر الاسترشادي كمرجع اختياري مستقل في **Price Guidance Panel**، البروفورما حرة في استخدام `unitPrice` مختلف.
 - `Pricing_Implementation_Guide.md` v1.1.0: Permissions Matrix (5 صلاحيات) · Cost Override Audit Entity · Staleness Display Logic · Price Guidance Record Schema.
-- `Pricing_RFC.md` v1.1.0: RFC-PRC-004 (Future Enhancement) · RFC-ACC-001 بُعد Pricing→Proforma محسوم.
+- `Pricing_RFC.md` v1.4.0: RFC-PRC-004 (Future Enhancement، شروط الفتح مُعدَّلة) · RFC-ACC-001 بُعد "Pricing Guidance at Proforma Decision" محسوم.
 - `docs/04_Policies/Pricing_Policy.md`: جديد — سياسة إدارية بلا أرقام ثابتة ولا أسماء برمجية.
 - **ADR-018 موسَّع:** 5 صلاحيات · `approvePriceException` بدل `approveLowMargin` · Migration Note.
 
@@ -46,9 +65,17 @@ Last-Updated:   2026-07-21
 - RFC-PRC-003 رُقِّي إلى RFC-ACC-001.
 
 **مفاهيم جوهرية للحفظ:**
-- السعر الاسترشادي = مرجع غير ملزم (`Price Guidance Panel`) — لا يُنسَخ لسعر البروفورما.
+- السعر الاسترشادي = مرجع غير ملزم (`Price Guidance Panel` / `Price Guidance Flow`) — لا يُنسَخ لسعر البروفورما.
 - `approvePriceException` تُطبَّق على مخالفة السياسة (هامش، خصم، قِدَم، Override) — لا على الانحراف عن السعر الاسترشادي.
-- `suggestedPriceAtDecision` = metadata للتدقيق فقط — لا يُعرَض للعميل ولا يؤثر على حسابات.
+- `suggestedPriceAtDecision` = metadata للتدقيق فقط، على مستوى كل بند (`PriceGuidanceRecord`) — لا يُعرَض للعميل ولا يؤثر على حسابات.
+- **حداثة التكلفة:** ≤90 يوماً مكتملاً = محدَّث، >90 = قديم (اليوم 90 محدَّث، اليوم 91 قديم).
+- **`PriceGuidanceRecord` شرطي، ليس إلزامياً لكل بروفورما:** يُنشَأ سجل واحد لكل بند فقط إذا عُرِض السعر الاسترشادي بنجاح. غياب الصلاحية أو عدم توفر البيانات → لا سجل، ولا عائق لإنشاء البروفورما بسعر يدوي.
+- **`approvePriceException` على 4 فئات بالضبط:** هامش منخفض / خصم مفرط / تكلفة قديمة / Cost Override — الانحراف عن السعر الاسترشادي وحده ليس فئة استثناء.
+
+**تنظيف مصطلحات (جولة أخيرة، 2026-07-21):**
+- `Price Selector` → `Price Guidance Flow` في `CRM_Implementation_Guide.md`.
+- إزالة كل بقايا `PriceSnapshot`/"السعر المختار يُحفَظ Snapshot" من `Pricing_RFC.md` و`Accounting_RFC.md`.
+- حمولة `crm.opportunity.converted_to_proforma` مفصولة عن `suggestedPriceAtDecision` — الأخيرة تُسجَّل حصراً عبر `pricing.price_guidance_recorded`.
 
 ---
 
@@ -96,7 +123,18 @@ Last-Updated:   2026-07-21
 **جلسة 1 (2026-07-21):** Framework + Catalog (27 مصدر، 11 section) + Dependencies.
 **جلسة 2 (2026-07-21):** Accounting Principles & Timing — 7 محاور.
 
-**RFC-ACC-001:** Partially Resolved — بُعد Pricing→Proforma محسوم ✅ · Inventory وAccounting مفتوحان.
+**RFC-ACC-001 — Snapshot vs Recalculation (Cross-Module):**
+
+```
+Resolved:
+- Pricing Guidance at Proforma Decision
+
+Open:
+- Commission Recalculation
+- Inventory Unit Cost
+- Accounting Derived Values
+```
+
 **مرشّح للتحقق (جلسة 5):** مخصص مكافأة نهاية الخدمة (5430/2160).
 
 ---

@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Pricing RFCs
-Version:        1.2.0 (توحيد مصطلحات PriceGuidanceRecord + RFC-PRC-004 Cross-Module)
+Version:        1.4.0 (تصحيح شروط فتح RFC-PRC-004 + توضيح PriceGuidanceRecord الشرطي)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -56,19 +56,21 @@ Opened:       2026-07-21
 - ربط محتمل بـ RFC-ACC-001 (Snapshot Policy) — لا يُحسَم قبل جلسة 5 من Accounting.
 
 ### الحالة
-لا يُفتَح النقاش التفصيلي قبل:
-1. اكتمال توثيق Inventory & Production.
-2. حسم RFC-ACC-001 في جلسة 5 من Accounting.
+`RFC-PRC-004` يمكن فتحه للنقاش بعد:
+1. تأكيد قواعد ملكية التكلفة (Cost Ownership) ذات الصلة من توثيق Inventory المكتمل.
+2. حسم تبعات Snapshot vs Recalculation في RFC-ACC-001 بالقدر الكافي.
+3. تحديد Product Owner صراحةً أولوية ترقية Cost Override المؤقت لتكلفة رسمية معتمدة.
 
 ---
 
-## ملاحظة: RFC-ACC-001 وبُعد Pricing→Proforma Snapshot
+## ملاحظة: RFC-ACC-001 وبُعد Pricing Guidance at Proforma Decision
 
 > للسجل فقط — المصدر القانوني الكامل في `Accounting_RFC.md`.
 
-بُعد "Pricing→Proforma Snapshot" من RFC-ACC-001 **محسوم** بقرار ميزة السعر الاسترشادي:
-- السعر المختار قبل التحويل يُحفَظ Snapshot على البروفورما.
-- البروفورما لا تعيد الحساب من `pricingCalc`.
+بُعد "Pricing Guidance at Proforma Decision" من RFC-ACC-001 **محسوم** بقرار ميزة السعر الاسترشادي:
+- `proforma.items[].unitPrice` هو السعر التجاري الفعلي — يُدخَل مستقلاً بلا اعتماد على السعر الاسترشادي.
+- السعر الاسترشادي metadata اختيارية للتدقيق فقط (`PriceGuidanceRecord`، على مستوى كل بند) — **تُنشَأ فقط عند عرض السعر الاسترشادي فعلياً**؛ لا سجل عند غياب الصلاحية أو عدم توفر السعر.
+- البروفورما لا تعتمد على السعر الاسترشادي ولا تُعيد حسابه.
 - Open Question #1 في `Pricing.md` أُغلق بناءً على هذا القرار.
 
 RFC-ACC-001 **يبقى مفتوحاً** لبُعدَي Inventory وAccounting.

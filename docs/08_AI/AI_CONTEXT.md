@@ -2,7 +2,7 @@
 
 ## Document Information
 ```
-Version:        2.1.0 (ميزة السعر الاسترشادي + ADR-018 موسَّع + OQ-1 مغلق + docs/04_Policies)
+Version:        2.3.0 (محاذاة حوكمية شاملة: مشغِّلات الاستثناء + PriceGuidanceRecord الشرطي + priceConfidenceState + RFC-ACC-001 يشمل Commission)
 Last-Updated:   2026-07-21
 ```
 
@@ -75,7 +75,7 @@ Latest Accepted:  ADR-014 — AI Development Strategy (2026-07-17)
 
 | RFC | النطاق | الحالة | الملف القانوني |
 |---|---|---|---|
-| **RFC-ACC-001** | Snapshot vs Recalculation (Cross-Module) | 🟡 **Partially Resolved** — بُعد Pricing→Proforma محسوم ✅ · Inventory وAccounting مفتوحان · جلسة 5 | `Accounting/Accounting_RFC.md` |
+| **RFC-ACC-001** | Snapshot vs Recalculation (Cross-Module) | 🟡 **Partially Resolved** — Pricing Guidance at Proforma Decision محسوم ✅: `unitPrice` مستقل، `PriceGuidanceRecord` metadata شرطية للتدقيق فقط. Commission وInventory وAccounting لا تزال مفتوحة | `Accounting/Accounting_RFC.md` |
 | RFC-SLE-002 | الشحن الجزئي | 🟢 تحقيق مكتمل، قرار معلَّق | `Sales_Export_RFC.md` |
 | RFC-PRC-003 | تجميد القيم المُشتقّة | 🟡 رُقِّي إلى RFC-ACC-001 | `Pricing_RFC.md` (cross-ref) |
 | RFC-PRC-004 | Cost Override → تكلفة رسمية معتمدة | ⬜ Future Enhancement — لم يُفتَح | `Pricing_RFC.md` |
@@ -116,4 +116,10 @@ Latest Accepted:  ADR-014 — AI Development Strategy (2026-07-17)
 - `Accounting.md` يجيب على "ماذا يضمن النظام؟" فقط — أسماء الدوال في `Accounting_Implementation_Guide.md`.
 - **`docs/04_Policies/`** مجلد جديد (2026-07-21) — وثائق سياسات إدارية بلا أسماء برمجية. أول ملف: `Pricing_Policy.md`.
 - **Migration Note — `approveLowMargin`:** أي تحقق قديم من `can('pricing','approveLowMargin')` يُهاجَر لـ `can('pricing','approvePriceException')` — انظر `ADR-018.md`.
-- **السعر الاسترشادي** هو مرجع داخلي غير ملزم (`Price Guidance Panel`) — لا يُنسَخ تلقائياً لسعر البروفورما. `unitPrice` الفعلي مستقل.
+- **السعر الاسترشادي** هو مرجع داخلي غير ملزم (`Price Guidance Panel` / `Price Guidance Flow`) — لا يُنسَخ تلقائياً لسعر البروفورما. `unitPrice` الفعلي مستقل.
+- **تنظيف مصطلحات (2026-07-21، جولة نهائية):** `Price Selector` → `Price Guidance Flow` · `PriceSnapshot` (كل الأشكال) أُزيلت نهائياً من Pricing_RFC/Accounting_RFC · حمولة `crm.opportunity.converted_to_proforma` مفصولة عن بيانات السعر الاسترشادي (التي تُحمَل في `pricing.price_guidance_recorded` فقط).
+- **الانحراف عن السعر الاسترشادي وحده ليس استثناءً:** `approvePriceException` تُطلَب فقط عند مخالفة سياسة معتمدة (هامش/خصم/تكلفة قديمة/Override) — لا لمجرد اختلاف `unitPrice` عن السعر الاسترشادي.
+- **`PriceGuidanceRecord` إلزامي فقط عند نجاح عرض الإرشاد:** إذا حُسِب السعر الاسترشادي وعُرِض بنجاح، يُسجَّل سجل واحد لكل بند. لا يُنشَأ أي سجل عند غياب الصلاحية أو عدم توفر الإرشاد (`PRC_NO_COST_DATA`).
+- **إنشاء البروفورما يبقى متاحاً دائماً بسعر يدوي:** غياب أو حجب السعر الاسترشادي لا يُعيق إنشاء البروفورما أبداً — لا استجابة 422 من مسار CRM بسبب غياب الإرشاد.
+- **أحداث تحويل CRM لا تحمل تفاصيل الإرشاد السعري:** `crm.opportunity.converted_to_proforma` يحمل `oppId, proformaId, custCode` فقط — بيانات السعر الاسترشادي حصراً في `pricing.price_guidance_recorded`.
+- **`priceConfidenceState` هو الاسم القانوني** في كل الـ Schemas والـ Audit payloads — لا يُستخدَم `confidenceState` المختصر.

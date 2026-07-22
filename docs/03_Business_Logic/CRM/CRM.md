@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  CRM Business Logic
-Version:        2.2.0 (إضافة Business Rules #12 و#13 — Pricing Integration)
+Version:        2.3.0 (توضيح: PriceGuidanceRecord شرطي، ليس إلزامياً لكل بروفورما)
 Status:         In Review
 Classification: Source of Truth
 Owner:          Product Owner
@@ -167,7 +167,7 @@ Gross = مجموع قيم الفرص المفتوحة. Weighted = `القيمة 
 2. لا يُمنَع إنشاء البروفورما لمجرد اختلاف `unitPrice` عن السعر الاسترشادي.
 3. `pricing.viewSuggestedPrice` تتحكم في رؤية لوحة المعلومات فقط — ليست شرطاً لإنشاء البروفورما.
 4. `pricing.approvePriceException` تُطبَّق فقط عندما يُخالف `unitPrice` الفعلي سياسةً (هامش أدنى، خصم خارج الحد، تكلفة قديمة تشترط السياسة اعتمادها، Override).
-5. يُحفَظ `suggestedPriceAtDecision` داخلياً كـ metadata للتدقيق والمقارنة فقط — لا يُعرَض للعميل ولا يُعتبَر سعر المستند.
+5. `PriceGuidanceRecord` **ليس إلزامياً لكل بروفورما**: إذا حُسِب السعر الاسترشادي وعُرِض بنجاح، يُسجَّل سجل واحد لكل بند مَعروض (`suggestedPriceAtDecision` + `priceConfidenceState`، لأغراض التدقيق فقط — لا يُعرَض للعميل ولا يُعتبَر سعر المستند). إذا لم يملك المستخدم صلاحية العرض، أو كان السعر الاسترشادي غير متاح، **لا يُنشَأ أي سجل** وتستمر عملية إنشاء البروفورما بسعر يدوي دون أي عائق.
 
 **⚠️ ملاحظة الـ Prototype:** `crmOppToProforma` يستخدم `Product.price` الثابت. قاعدة #13 تحل محله في البناء الإنتاجي.
 

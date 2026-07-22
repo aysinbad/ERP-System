@@ -3,7 +3,7 @@
 ## Document Information
 ```
 Document Name:  Accounting Engine RFCs
-Version:        0.3.0 (توحيد مصطلحات: Pricing Guidance بدل Snapshot)
+Version:        0.5.0 (تصحيح: حالة صحيحة تشمل Commission + إزالة صياغة "يُحسَم عند توثيق Inventory" القديمة)
 Status:         Active
 Classification: Reference
 Owner:          Solution Architecture Team
@@ -20,7 +20,7 @@ Last-Updated:   2026-07-21
 RFC:          RFC-ACC-001
 Title:        Snapshot vs Recalculation of Derived Values
 Type:         Cross-Module
-Status:       Partially Resolved — Open for Inventory & Accounting dimensions
+Status:       Partially Resolved — Open for Commission, Inventory, and Accounting dimensions
 Scope:        Accounting · Pricing · Inventory
 Owner:        Solution Architecture Team
 Opened:       2026-07-21
@@ -39,15 +39,15 @@ Expected-outcome: Cross-Module ADR
 |---|---|---|---|
 | **Pricing Guidance at Proforma Decision** | Pricing → CRM | ✅ **محسوم (2026-07-21)** | `proforma.items[].unitPrice` هو السعر التجاري الفعلي — يُدخَل مستقلاً بلا اعتماد على السعر الاسترشادي. السعر الاسترشادي **metadata اختيارية للتدقيق فقط** (`PriceGuidanceRecord`). البروفورما لا تعتمد على السعر الاسترشادي ولا تُعيد حسابه. موثَّق في `Pricing.md` Business Rules §Suggested Price & CRM Integration |
 | **Commission Recalculation** | Pricing (PINV-12) | 🟡 مفتوح | العمولة تُعاد حسابها من حالة النظام الحالية — Snapshot لم يُقرَّر |
-| **Inventory Unit Cost** | Inventory | 🟡 مفتوح | التكلفة ديناميكية وقت الطلب — يُحسَم عند توثيق Inventory |
+| **Inventory Unit Cost** | Inventory | 🟡 مفتوح | السلوك الحالي موثَّق بالكامل: تكلفة الوحدة تُشتَق ديناميكياً وقت الطلب. القرار المعماري بين Snapshot وRecalculation لا يزال مفتوحاً |
 | **Accounting Derived Values** | Accounting | 🟡 مفتوح | نصيب المصروف العام والمخصصات — يُحسَم في جلسة 5 من Accounting |
 
 ### Scope — لماذا هي عابرة للموديولات
 | الموديول | مظهر المشكلة | القرينة |
 |---|---|---|
-| **Pricing** | السعر المقترح → **محسوم** (Snapshot عند التحويل) | `Pricing.md` — OQ-1 مغلق |
-| **Pricing** | العمولة تُعاد اشتقاقها بأثر رجعي | PINV-12 + Price Snapshot Policy |
-| **Inventory** | تكلفة الوحدة ديناميكية وقت الطلب | تُوثَّق عند استخراج موديول Inventory |
+| **Pricing** | السعر المقترح → **محسوم** (Pricing Guidance at Proforma Decision — metadata فقط، `unitPrice` مستقل) | `Pricing.md` — OQ-1 مغلق |
+| **Pricing** | العمولة تُعاد اشتقاقها بأثر رجعي | PINV-12 (لا يزال مفتوحاً — انظر قسم "تجميد القيم المشتقة مقابل إعادة احتسابها" في `Pricing.md`) |
+| **Inventory** | تكلفة الوحدة ديناميكية وقت الطلب — السلوك موثَّق بالكامل، القرار المعماري لا يزال مفتوحاً | `Inventory_Production.md` → RFC-ACC-001 (forward-reference) |
 | **Accounting** | نصيب المصروف العام + المخصصات من حالة النظام الحالية | `Accounting.md` — Open Questions #2 |
 
 ### Options (تُحلَّل في جلسة 5 من Accounting للأبعاد المفتوحة)
