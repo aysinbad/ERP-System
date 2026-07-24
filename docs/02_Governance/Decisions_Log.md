@@ -3,13 +3,13 @@
 ## Document Information
 ```
 Document Name:  Decisions Log (Index)
-Version:        2.0.0
+Version:        2.1.0
 Status:         Approved
 Classification: Source of Truth
 Owner:          Product Owner
 Approved-by:    Product Owner
 Approved-date:  2026-07-18
-Last-Updated:   2026-07-18
+Last-Updated:   2026-07-23 (إضافة ADR-020)
 ```
 
 > **تغيير هيكلي (MAJOR):** هذا الملف كان يحتوي كل تفاصيل الـ ADRs (v1.1.0). بدءاً من هذا الإصدار، هو **فهرس فقط** — كل ADR أصبح ملفاً مستقلاً في `ADR/ADR-XXX.md`. القالب والقواعد (الترقيم الأبدي، حالات الاعتماد) في `01_Standards/Document_Standard.md`.
@@ -41,13 +41,19 @@ Last-Updated:   2026-07-18
 | **ADR-017** | **مصادر مكوّنات التكلفة التصديرية: متوسط تاريخي بدل إدخال حر (يحسم RFC-PRC-001)** | **Proposed** | **2026-07-18** | `ADR/ADR-017.md` |
 | **ADR-018** | **صلاحية رؤية التكلفة وحد أدنى للهامش مع تجاوز مبرَّر (يحسم RFC-PRC-002)** | **Proposed** | **2026-07-18** | `ADR/ADR-018.md` |
 | **ADR-019** | **استبدال الاستدعاء المباشر CRM→Sales/Export بحدث نطاقي (يحسم RFC-SLE-001)** | **Proposed** | **2026-07-18** | `ADR/ADR-019.md` |
+| **ADR-020** | **معمارية الترحيل الثابت: دفتر مُرحَّل مُخزَّن غير قابل للتعديل كمصدر الحقيقة المحاسبية** *(Alias: `ACC-A — Immutable Posting Architecture`)* — **يحسم `RFC-ACC-001`** · **أساس تبعي لـ`ACC-B` و`ACC-C` و`ACC-D` و`ACC-E`** | **Proposed** | **2026-07-23** | `ADR/ADR-020.md` |
 
 > ⚠️ **ملاحظة تحويل:** ADR-001 إلى ADR-012 كُتبت قبل اعتماد `Document_Standard.md` الحالي، ولذلك لا تحمل كل الحقول الشكلية (Owner, Approved-by...) في ترويستها. المحتوى الفعلي (Context/Decision/Consequences) كامل وصحيح، والتاريخ الدقيق لبعضها غير مسجَّل ("—" أعلاه). لا تُعاد كتابتها لإضافة الحقول الشكلية إلا إذا استلزم تعديل جوهري لاحق (MAJOR/MINOR) نفس الفرصة.
+
+> **ملاحظة على ADR-020:** هو **الأساس بلا تبعية** في سلسلة قرارات المحاسبة الخمسة. الترتيب الملزم: `ACC-A` ⇒ (`ACC-B` ⇒ `ACC-C`) · (`ACC-D` ⇒ `ACC-E`)، و`ACC-E` يعتمد على `ACC-A` و`ACC-D` معاً.
+> `ACC-B` · `ACC-C` · `ACC-D` **مرشّحون لجلسة Accounting 6** — لم تُحجَز لهم أرقام ADR بعد (قاعدة الترقيم الأبدي: الرقم يُحجَز عند إنشاء الملف).
+> `ACC-E` 🔴 **`Blocked pending evidence on settlement/consumption of account 2017`**.
 
 ## قرارات معلّقة (Pending Decisions)
 - **Multi-branch consolidation**: كيف تتجمّع حسابات فروع الشركة الواحدة؟ (خطة v2.0)
 - **AI pricing**: ما مصدر بيانات التدريب؟ (خطة v2.0)
 - **تكامل NAFEZA/الجمارك**: أي APIs متاحة رسمياً؟ (بحث مطلوب)
+- **استنفاد/تسوية الحساب 2017** (عمولات مبيعات مستحقة): هل له مسار استنفاد؟ — 🔴 **يحجب `ACC-E` وحده**، ولا يؤثر على ADR-020 ولا `ACC-B/C/D` (جلسة Accounting 6)
 
 ## قاعدة الإضافة
 أي قرار جديد: (1) يُنشأ كملف `ADR/ADR-XXX.md` بالرقم التالي مباشرة (لا يُعاد استخدام رقم محذوف)، (2) يُضاف سطر واحد هنا في الفهرس، (3) الحالة الابتدائية دائماً `Proposed` حتى اعتماد الـ Product Owner.

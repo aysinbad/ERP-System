@@ -1,0 +1,180 @@
+warning: in the working copy of 'docs/02_Governance/Decisions_Log.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/02_Governance/Known_Issues.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/03_Business_Logic/Accounting/Accounting.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/03_Business_Logic/Accounting/Accounting_RFC.md', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/docs/02_Governance/Decisions_Log.md b/docs/02_Governance/Decisions_Log.md[m
+[1mindex 3ab9abc..79e779b 100644[m
+[1m--- a/docs/02_Governance/Decisions_Log.md[m
+[1m+++ b/docs/02_Governance/Decisions_Log.md[m
+[36m@@ -3,13 +3,13 @@[m
+ ## Document Information[m
+ ```[m
+ Document Name:  Decisions Log (Index)[m
+[31m-Version:        2.0.0[m
+[32m+[m[32mVersion:        2.1.0[m
+ Status:         Approved[m
+ Classification: Source of Truth[m
+ Owner:          Product Owner[m
+ Approved-by:    Product Owner[m
+ Approved-date:  2026-07-18[m
+[31m-Last-Updated:   2026-07-18[m
+[32m+[m[32mLast-Updated:   2026-07-23 (إضافة ADR-020)[m
+ ```[m
+ [m
+ > **تغيير هيكلي (MAJOR):** هذا الملف كان يحتوي كل تفاصيل الـ ADRs (v1.1.0). بدءاً من هذا الإصدار، هو **فهرس فقط** — كل ADR أصبح ملفاً مستقلاً في `ADR/ADR-XXX.md`. القالب والقواعد (الترقيم الأبدي، حالات الاعتماد) في `01_Standards/Document_Standard.md`.[m
+[36m@@ -41,13 +41,19 @@[m [mLast-Updated:   2026-07-18[m
+ | **ADR-017** | **مصادر مكوّنات التكلفة التصديرية: متوسط تاريخي بدل إدخال حر (يحسم RFC-PRC-001)** | **Proposed** | **2026-07-18** | `ADR/ADR-017.md` |[m
+ | **ADR-018** | **صلاحية رؤية التكلفة وحد أدنى للهامش مع تجاوز مبرَّر (يحسم RFC-PRC-002)** | **Proposed** | **2026-07-18** | `ADR/ADR-018.md` |[m
+ | **ADR-019** | **استبدال الاستدعاء المباشر CRM→Sales/Export بحدث نطاقي (يحسم RFC-SLE-001)** | **Proposed** | **2026-07-18** | `ADR/ADR-019.md` |[m
+[32m+[m[32m| **ADR-020** | **معمارية الترحيل الثابت: دفتر مُرحَّل مُخزَّن غير قابل للتعديل كمصدر الحقيقة المحاسبية** *(Alias: `ACC-A — Immutable Posting Architecture`)* — **يحسم `RFC-ACC-001`** · **أساس تبعي لـ`ACC-B` و`ACC-C` و`ACC-D` و`ACC-E`** | **Proposed** | **2026-07-23** | `ADR/ADR-020.md` |[m
+ [m
+ > ⚠️ **ملاحظة تحويل:** ADR-001 إلى ADR-012 كُتبت قبل اعتماد `Document_Standard.md` الحالي، ولذلك لا تحمل كل الحقول الشكلية (Owner, Approved-by...) في ترويستها. المحتوى الفعلي (Context/Decision/Consequences) كامل وصحيح، والتاريخ الدقيق لبعضها غير مسجَّل ("—" أعلاه). لا تُعاد كتابتها لإضافة الحقول الشكلية إلا إذا استلزم تعديل جوهري لاحق (MAJOR/MINOR) نفس الفرصة.[m
+ [m
+[32m+[m[32m> **ملاحظة على ADR-020:** هو **الأساس بلا تبعية** في سلسلة قرارات المحاسبة الخمسة. الترتيب الملزم: `ACC-A` ⇒ (`ACC-B` ⇒ `ACC-C`) · (`ACC-D` ⇒ `ACC-E`)، و`ACC-E` يعتمد على `ACC-A` و`ACC-D` معاً.[m
+[32m+[m[32m> `ACC-B` · `ACC-C` · `ACC-D` **مرشّحون لجلسة Accounting 6** — لم تُحجَز لهم أرقام ADR بعد (قاعدة الترقيم الأبدي: الرقم يُحجَز عند إنشاء الملف).[m
+[32m+[m[32m> `ACC-E` 🔴 **`Blocked pending evidence on settlement/consumption of account 2017`**.[m
+[32m+[m
+ ## قرارات معلّقة (Pending Decisions)[m
+ - **Multi-branch consolidation**: كيف تتجمّع حسابات فروع الشركة الواحدة؟ (خطة v2.0)[m
+ - **AI pricing**: ما مصدر بيانات التدريب؟ (خطة v2.0)[m
+ - **تكامل NAFEZA/الجمارك**: أي APIs متاحة رسمياً؟ (بحث مطلوب)[m
+[32m+[m[32m- **استنفاد/تسوية الحساب 2017** (عمولات مبيعات مستحقة): هل له مسار استنفاد؟ — 🔴 **يحجب `ACC-E` وحده**، ولا يؤثر على ADR-020 ولا `ACC-B/C/D` (جلسة Accounting 6)[m
+ [m
+ ## قاعدة الإضافة[m
+ أي قرار جديد: (1) يُنشأ كملف `ADR/ADR-XXX.md` بالرقم التالي مباشرة (لا يُعاد استخدام رقم محذوف)، (2) يُضاف سطر واحد هنا في الفهرس، (3) الحالة الابتدائية دائماً `Proposed` حتى اعتماد الـ Product Owner.[m
+[1mdiff --git a/docs/02_Governance/Known_Issues.md b/docs/02_Governance/Known_Issues.md[m
+[1mindex 8923474..613b7f7 100644[m
+[1m--- a/docs/02_Governance/Known_Issues.md[m
+[1m+++ b/docs/02_Governance/Known_Issues.md[m
+[36m@@ -3,19 +3,24 @@[m
+ ## Document Information[m
+ ```[m
+ Document Name:  Known Issues[m
+[31m-Version:        1.0.0[m
+[31m-Status:         Approved[m
+[32m+[m[32mVersion:        1.1.0[m
+[32m+[m[32mStatus:         Approved (KI-001 → KI-009) · KI-010 → KI-024 مضافة 2026-07-23 بانتظار مراجعة جلسة 6[m
+ Classification: Reference[m
+ Owner:          Solution Architecture Team[m
+ Approved-by:    Product Owner[m
+ Approved-date:  2026-07-18[m
+[31m-Last-Updated:   2026-07-18[m
+[32m+[m[32mLast-Updated:   2026-07-23 (Accounting Session 5 merge)[m
+ ```[m
+ [m
+ > **الفرق بين هذا الملف و `docs/02_Governance/Decisions_Log.md`:** كل سطر هنا هو **خلل تقني معروف في الـ Prototype**، وليس قرار عمل مقصود.[m
+ > **قاعدة إلزامية لأي AI Agent:** هذه العناصر **لا تُنقل كسلوك مطلوب** أثناء الترحيل. لا تُبنى كـ Business Logic، ولا يُستنتج منها أي قاعدة. تُعالَج فقط في طبقة الـ Backend الجديدة حسب الحل المقترح.[m
+ > لو الكود والتوثيق (ADR) تعارضا حول أي بند هنا، **هذا الملف هو الأصح** لأنه موثّق بعد مراجعة متعمّدة، لا افتراض حر.[m
+ [m
+[32m+[m[32m> **تحديث 2026-07-23 — دمج جلسة Accounting 5:**[m
+[32m+[m[32m> - **KI-008 و KI-009** احتفظا بنطاقهما ووصفهما الأصلي بالكامل، وأُضيف لكلٍّ منهما قسم **«أثر محاسبي — مضاف بمراجعة جلسة Accounting 5»** فقط.[m
+[32m+[m[32m> - **KI-010 → KI-024** (15 خللاً) أُضيفت من `Accounting_Session5_Invariants_RFC_Decisions_Reviewed.md` §8.[m
+[32m+[m[32m> - الحقول التي لم يثبت تفصيلها بعد موسومة حرفياً **`To be completed in Session 6`** — **لا تُملأ بافتراض**.[m
+[32m+[m
+ ---[m
+ [m
+ ## KI-001 — كلمات المرور نص صريح (Plaintext Passwords)[m
+[36m@@ -72,6 +77,13 @@[m [mLast-Updated:   2026-07-18[m
+ - **الحل المطلوب عند بناء الـ Backend:** نفس حل KI-007 بالضبط — فرض صلاحية على مستوى الـ API، منع حذف أي مستند له `toDoc` أو `linkedInvoiceId` مملوء (أو تحويله لحذف منطقي)، وتسجيل كل عملية حذف في الـ Audit Log.[m
+ - **لا يُنقل كما هو.**[m
+ [m
+[32m+[m[32m### أثر محاسبي — مضاف بمراجعة جلسة Accounting 5[m
+[32m+[m[32m> `delSalesDoc` بلا فحص صلاحية تسمح بحذف مستند مصدر لفاتورة مُرحَّلة. ولأن الدفتر **مُشتقّ**، فحذف المستند **يمحو قيوده من كل الفترات** بلا قيد عكسي — بما فيها فترات مقفلة، لأن `canDeleteDated` غير مطبَّقة على هذا المسار.[m
+[32m+[m[32m> ⇒ خرق مباشر لضمانة «المُرحَّل لا يُعدَّل ولا يُحذَف» المعلَنة في `Glossary.md` §12.[m
+[32m+[m
+[32m+[m[32m- **Related:** AINV-30 · AINV-05 · **ACC-C** (ADR مرشَّح — جلسة 6)[m
+[32m+[m[32m- **Evidence:** `Accounting_Session5_Invariants_RFC_Decisions_Reviewed.md` §8.5[m
+[32m+[m
+ ## KI-009 — إمكانية إنشاء فاتورة تجارية مكرّرة من نفس أمر التصدير (ثغرة واجهة مؤكَّدة، لا افتراض كود فقط)[m
+ - **الموقع:** `sdConvert` (فرع `t.next==='invoice'`) + شرط `canConv` في `viewSalesDocs`/`openSalesDocDetail`.[m
+ - **السبب الجذري:** خطوة `order → invoice` هي الوحيدة في سلسلة مستندات البيع اللي **لا تضبط `doc.toDoc`** بعد التحويل (تضبط `linkedInvoiceId` بس). كل باقي الخطوات (quotation→proforma→contract→order) بتضبط `toDoc` فتُمنع من التكرار تلقائياً.[m
+[36m@@ -80,5 +92,251 @@[m [mLast-Updated:   2026-07-18[m
+ - **الحل المطلوب عند بناء الـ Backend:** ضبط `doc.toDoc` (أو حقل مكافئ صريح، مثل `converted:true`) في فرع `order→invoice` بالضبط زي باقي الخطوات، لمنع التكرار من جذره — لا يكفي إخفاء الزر في الواجهة فقط (نفس مبدأ "لا اعتماد على الواجهة كحماية وحيدة" المتكرر في كل الوحدات).[m
+ - **لا يُنقل كما هو.**[m
+ [m
+[32m+[m[32m### أثر محاسبي — مضاف بمراجعة جلسة Accounting 5[m
+[32m+[m[32m> لأن `sdConvert` لا تضبط `doc.toDoc` في فرع `order → invoice`، يمكن إنشاء فاتورتين تجاريتين من نفس أمر التصدير من الواجهة بلا أي تلاعب. و`buildJournalCore()` تعالج **كل سجل في `DB.invoices` باستقلال تام** — لا تفحص `fromSalesDoc` ولا تبحث عن تكرار.[m
+[32m+[m[32m> ⇒ **قيدان كاملان: إيراد مزدوج (4010) · ذمة مزدوجة (1100) · التزام ضريبي مزدوج (2100) · وخصم مزدوج من المخزون (1200 عبر 5010).** كلاهما متوازن فيمرّ من حارس `add()` بلا إنذار.[m
+[32m+[m[32m> **الحد الوحيد ضد ازدواج القيد يقع خارج موديول المحاسبة كلياً.**[m
+[32m+[m
+[32m+[m[32m- **Related:** AINV-04 · **ACC-A** (`ADR-020` — `Proposed`)[m
+[32m+[m[32m- **Evidence:** `Accounting_Session5_Invariants_RFC_Decisions_Reviewed.md` §8.5[m
+[32m+[m
+[32m+[m[32m---[m
+[32m+[m
+[32m+[m[32m> ## KI-010 → KI-024 — أخلال محاسبية (جلسة Accounting 5 · 2026-07-23)[m
+[32m+[m[32m>[m
+[32m+[m[32m> المصدر الموثِّق لكل ما يلي: `Accounting_Session5_Invariants_RFC_Decisions_Reviewed.md` v1.1.0 §8.[m
+[32m+[m[32m> `Target` يشير إلى الثابت المحاسبي (`AINV-XX`) والـADR المعالج. `ACC-A` = `ADR-020` (`Proposed`); `ACC-B/C/D/E` مرشّحون لجلسة 6، و`ACC-E` **محجوب** حتى حسم استنفاد الحساب 2017.[m
+[32m+[m
+[32m+[m
+[32m+[m[32m## KI-010 — Customer claim valued at live FX rate — breaches ADR-007[m
+[32m+[m[32m- **Severity:** 🔴 Critical[m
+[32m+[m[32m- **Observed behavior:** ذمة العملة الأجنبية لا تصفو؛ رصيد متبقٍّ دائم بلا تصنيف[m
+[32m+[m[32m- **Expected behavior:** `To be completed in Session 6`[m
+[32m+[m[32m- **Accounting impact:** ذمة العملة الأجنبية لا تصفو؛ رصيد متبقٍّ دائم بلا تصنيف[m
+[32m+[m[32m- **Affected accounts:** 1100 · 5300 · 4030 · 5500[m
+[32m+[m[32m- **Evidence:** JS-08 — مطالبة عميل معتمدة تُقيَّم بـ`fxRate()` **حيّ** بدل سعر نشأة الذمة — `Accounting_Session5…Reviewed.md` §8.4[m
+[32m+[m[32m- **Reproduction path:** `To be completed in Session 6`[m
+[32m+[m[32m- **Period impact:** `To be completed in Session 6`[m
+[32m+[m[32m- **Temporary workaround:** `To be completed in Session 6`[m
+[32m+[m[32m- **Target:** AINV-10 · ACC-B[m
+[32m+[m[32m- **لا يُنقل كما هو.**[m
+[32m+[m
+[32m+[m[32m## KI-011 — Account 1260 outside every close blocker[m
+[32m+[m[32m- **Severity:** 🔴 Critical[m
+[32m+[m[32m- **Observed behavior:** الهدر يبقى أصلاً ⇒ أصول وأرباح مُضخَّمة[m
+[32m+[m[32m- **Expected behavior:** `To be completed in Session 6`[m
+[32m+[m[32m- **Accounting impact:** الهدر يبقى أصلاً ⇒ أصول وأرباح مُضخَّمة[m
+[32m+[m[32m- **Affected accounts:** 1260 · 5030 · 2010[m
+[32m+[m[32m- **Evidence:** S4.6 DF-1 — 1260 غير مذكور في `closeReadiness().blockers`؛ الفحص مؤشر إتمام إرشادي لا مانع — `Accounting_Session5…Reviewed.md` §8.4[m
+[32m+[m[32m- **Reproduction path:** `To be completed in Session 6`[m
+[32m+[m[32m- **Period impact:** `To be completed in Session 6`[m
+[32m+[m[32m- **Temporary workaround:** `To be completed in Session 6`[m
+[32m+[m[32m- **Target:** AINV-24 · ACC-E[m
+[32m+[m[32m- **لا يُنقل كما هو.**[m
+[32m+[m
+[32m+[m[32m## KI-012 — Account 5300 charged twice; 2105 never consumed[m
+[32m+[m[32m- **Severity:** 🔴 Critical[m
+[32m+[m[32m- **Observed behavior:** ازدواج تحميل على المصروف؛ التزام متراكم[m
+[32m+[m[32m- **Expected behavior:** `To be completed in Session 6`[m
+[32m+[m[32m- **Accounting impact:** ازدواج تحميل على المصروف؛ التزام متراكم[m
+[32m+[m[32m- **Affected accounts:** 5300 · 2105 · 1100[m
+[32m+[m[32m- **Evidence:** JS-08 يحمّل 5300 عند المطالبة الفعلية · JS-43 يحمّله ثانيةً كمخصص؛ 2105 بلا مسار استنفاد — `Accounting_Session5…Reviewed.md` §8.4[m
+[32m+[m[32m- **Reproduction path:** `To be completed in Session 6`[m
+[32m+[m[32m- **Period impact:** `To be completed in Session 6`[m
+[32m+[m[32m- **Temporary workaround:** `To be completed in Session 6`[m
+[32m+[m[32m- **Target:** AINV-21 · ACC-E[m
+[32m+[m[32m- **لا يُنقل كما هو.**[m
+[32m+[m
+[32m+[m[32m## KI-013 — Claims provision base is cumulative in journal, filtered on screen[m
+[32m+[m[32m- **Severity:** 🔴 Critical[m
+[32m+[m[32m- **Observed behavior:** Displayed Basis ≠ Posted Basis؛ ويشمل proforma والمؤجَّل[m
+[32m+[m[32m- **Expected behavior:** `To be completed in Session 6`[m
+[32m+[m[32m- **Accounting impact:** Displayed Basis ≠ Posted Basis؛ ويشمل proforma والمؤجَّل[m
+[32m+[m[32m- **Affected accounts:** 5300 · 2105[m
+[32m+[m[32m- **Evidence:** S4.6 T2 — `fInvoices()` تُنتج مجتمعين مختلفين لنفس الوعاء بين الدفتر والشاشة — `Accounting_Session5…Reviewed.md` §8.4[m
+[32m+[m[32m- **Reproduction path:** `To be completed in Session 6`[m
+[32m+[m[32m- **Period impact:** `To be completed in Session 6`[m
+[32m+[m[32m- **Temporary workaround:** `To be completed in Session 6`[m
+[32m+[m[32m- **Target:** AINV-13 · AINV-22 · ACC-E[m
+[32m+[m[32m- **لا يُنقل كما هو.**[m
+[32m+[m
+[32m+[m[32m## KI-014 — Multiple purchase invoices per GRN not prevented[m
+[32m+[m[32m- **Severity:** 🔴 High[m
+[32m+[m[32m- **Observed behavior:** 2016 قد يصير مديناً؛ ازدواج دين المورد[m
+[32m+[m[32m- **Expected behavior:** `To be completed in Session 6`[m
+[32m+[m[32m- **Accounting impact:** 2016 قد يصير مديناً؛ ازدواج دين المورد[m
+[32m+[m[32m- **Affected accounts:** 2016 · 2010 · 1200[m
+[32m+[m[32m- **Evidence:** S4.5 Target 7 — لا حارس ولا إقفال جزئي على إذن الاستلام — `Accounting_Session5…Reviewed.md` §8.4[m
+[32m+[m[32m- **Reproduction path:** `To be completed in Session 6`[m
+[32m+[m[32m- **Period impact:** `To be completed in Session 6`[m
+[32m+[m[32m- **Temporary workaround:** `To be completed in Session 6`[m
+[32m+[m[32m- **Target:** AINV-15 · ACC-A[m
+[32m+[m[32m- **لا يُنقل كما هو.**[m
+[32m+[m
+[32m+[m[32m## KI-015 — `lockPeriodNow()` has no internal guard; `unlockPeriodNow()` needs no permission[m
+[32m+[m[32m- **Severity:** 🔴 High[m
+[32m+[m[32m- **Observed behavior:** القفل قابل للتجاوز والفتح بلا ضابط[m
+[32m+[m[32m- **Expected behavior:** `To be completed in Session 6`[m
+[32m+
