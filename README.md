@@ -25,9 +25,10 @@ docs/
 │   └── Accounting/       نفس النمط + Session_6_2/ (مصفوفة الترحيل + توثيق Backend) · Controls/ · Sessions/Validation/
 ├── 04_Policies/         سياسات معتمدة (Pricing_Policy.md)
 ├── 05_API/              عقد الـ API (reserved / empty حالياً)
-├── 06_Architecture/     المعمارية والتكاملات
-├── 07_UI_UX/            (reserved / empty حالياً)
-└── 08_AI/               سياق العمل الحالي للـ AI + إرشادات الـ Prompts
+├── 06_Testing/          اختبارات (يشمل Security/Security_Test_Specification.md)
+├── 07_Architecture/     المعمارية والتكاملات
+├── 08_UI_UX/            (reserved / empty حالياً)
+└── 09_AI/               سياق العمل الحالي للـ AI + إرشادات الـ Prompts
 
 reference/
 ├── prototype/           الـ Prototype الأصلي — مرجع تاريخي مجمّد، لا يُعدَّل (اقرأ README.md بداخله أولاً)

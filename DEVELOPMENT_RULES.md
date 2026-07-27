@@ -29,13 +29,13 @@ Last-Updated:   2026-07-20
 | 4 | **`docs/02_Governance/Decisions_Log.md`** (فهرس) ثم **`docs/02_Governance/ADR/ADR-XXX.md`** حسب النطاق | قرارات ملزمة — لا تُستنتَ من العناوين فقط |
 | 5 | **`docs/01_Standards/Glossary.md`** | مصطلحات إلزامية في الكود والواجهة والتوثيق |
 | 6 | **`docs/02_Governance/Known_Issues.md`** | أخطاء Prototype — **لا تُنقل** كسلوك مطلوب |
-| 7 | **`docs/08_AI/AI_CONTEXT.md`** | الوحدة الجارية، آخر ADR، حالة الموديولات |
+| 7 | **`docs/09_AI/AI_CONTEXT.md`** | الوحدة الجارية، آخر ADR، حالة الموديولات |
 | 8 | **`docs/03_Business_Logic/{Module}/`** للموديول في النطاق | منطق الأعمال قبل أي تنفيذ |
 | 9 | **`reference/prototype/README.md`** ثم **`reference/prototype/prototype_v2.html`** | فقط عند غموض لم يُحسم في (8) — Rule Zero |
 
 ### 1.2 عند كتابة كود Backend/Frontend فعلي (عندما يُنشأ)
 إضافةً لما سبق:
-- **`docs/06_Architecture/Architecture.md`**
+- **`docs/07_Architecture/Architecture.md`**
 - **`docs/01_Standards/API_Standards.md`** (حالة `Proposed` — لا تُعتبر عقداً ملزماً حتى اعتماد ADR/الفريق)
 - **`docs/03_Business_Logic/{Module}/{Module}_Implementation_Guide.md`**
 - **`docs/04_Database/`** و **`docs/05_API/`** عند توفرهما للموديول
@@ -201,8 +201,8 @@ Last-Updated:   2026-07-20
 | مصطلحات | `docs/01_Standards/Glossary.md` |
 | شكل الوثائق | `docs/01_Standards/Document_Standard.md` |
 | API | `docs/01_Standards/API_Standards.md` |
-| معمارية | `docs/06_Architecture/Architecture.md` |
-| سياق أسبوعي | `docs/08_AI/AI_CONTEXT.md` |
+| معمارية | `docs/07_Architecture/Architecture.md` |
+| سياق أسبوعي | `docs/09_AI/AI_CONTEXT.md` |
 | Prototype | `reference/prototype/README.md` |
 
 ---

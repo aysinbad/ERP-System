@@ -13,7 +13,7 @@ Last-Updated:   2026-07-18
 ```
 
 > يُطبَّق على أي أداة AI (Claude, Cursor, Codex, أو غيرها) تعمل على هذا المشروع، بلا استثناء.
-> هذا الملف يحوي **القواعد الصلبة فقط** — تتغيّر نادراً. للسياق المتغيّر أسبوعياً (آخر ADR معتمد، الوحدة الجاري العمل عليها)، انظر `docs/08_AI/AI_CONTEXT.md`.
+> هذا الملف يحوي **القواعد الصلبة فقط** — تتغيّر نادراً. للسياق المتغيّر أسبوعياً (آخر ADR معتمد، الوحدة الجاري العمل عليها)، انظر `docs/09_AI/AI_CONTEXT.md`.
 
 ---
 
@@ -23,7 +23,7 @@ Last-Updated:   2026-07-18
 3. `docs/02_Governance/Decisions_Log.md` (فهرس) — ثم افتح ملف الـ ADR الفعلي المطلوب من `docs/02_Governance/ADR/ADR-XXX.md`
 4. `docs/01_Standards/Glossary.md` — مصطلحات إلزامية، لا مرادفات مرفوضة
 5. `docs/02_Governance/Known_Issues.md` — أخطاء معروفة لا تُنقل كسلوك مطلوب
-6. `docs/08_AI/AI_CONTEXT.md` — السياق الحالي (آخر ADR، الوحدة قيد العمل)
+6. `docs/09_AI/AI_CONTEXT.md` — السياق الحالي (آخر ADR، الوحدة قيد العمل)
 7. The relevant file in `docs/03_Business_Logic/` for the module in scope (لو مش موجود، انتقل لقاعدة "التوقف والسؤال" أدناه)
 8. عند الحاجة للرجوع للكود الفعلي (Rule Zero فقط): `reference/prototype/prototype_v2.html` — اقرأ `reference/prototype/README.md` أولاً
 
